@@ -1,0 +1,58 @@
+[project]
+name = "hidden-gems"
+version = "0.1.0"
+description = "NYC Hidden Gems Discovery System"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+ai-agent = [
+    "crewai>=0.1.0",
+    "langchain>=0.1.0",
+    "langchain-openai>=0.0.5",
+    "openai>=1.0.0",
+]
+web-scraper = [
+    "praw>=7.7.0",
+    "beautifulsoup4>=4.12.0",
+    "requests>=2.31.0",
+    "googlemaps>=4.10.0",
+    "lxml>=4.9.0",
+]
+hybrid = [
+    "hidden-gems[ai-agent,web-scraper]",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

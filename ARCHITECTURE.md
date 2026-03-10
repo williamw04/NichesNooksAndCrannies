@@ -11,14 +11,14 @@ This document describes the architecture of the NYC Hidden Gems Discovery System
 
 ### Core Approaches
 
-**AI Agent Approach** (`src/approaches/ai-agent/`)
+**AI Agent Approach** (`src/approaches/ai_agent/`)
 - Discovery, validation, and enrichment via AI agents
 - Framework: CrewAI or LangChain
 - Best for: Quality, nuanced content, small batches
 - Cost: ~$0.30-0.50/location
 - Dependencies: Shared types, Shared services
 
-**Web Scraper Approach** (`src/approaches/web-scraper/`)
+**Web Scraper Approach** (`src/approaches/web_scraper/`)
 - Deterministic scraping of specific platforms
 - Tools: PRAW, BeautifulSoup, Scrapy, Google Places API
 - Best for: Scale, cost efficiency, large batches
@@ -90,14 +90,14 @@ Located in `src/shared/`:
 ```
 src/
 ├── approaches/
-│   ├── ai-agent/
+│   ├── ai_agent/
 │   │   ├── types/
 │   │   ├── config/
 │   │   ├── agents/          # Agent definitions
 │   │   ├── tools/           # Agent tools
 │   │   ├── processors/
 │   │   └── main.py
-│   ├── web-scraper/
+│   ├── web_scraper/
 │   │   ├── types/
 │   │   ├── config/
 │   │   ├── scrapers/        # Scraper modules
@@ -129,8 +129,8 @@ src/
 │   ├── processed/
 │   └── output/
 └── tests/
-    ├── ai-agent/
-    ├── web-scraper/
+    ├── ai_agent/
+    ├── web_scraper/
     ├── hybrid/
     └── shared/
 ```

@@ -158,7 +158,7 @@ title = api_response.get('title', '')
 **Implications**:
 - All approaches documented in `docs/product-specs/`
 - All architectural decisions in `docs/design-docs/`
-- All execution plans tracked
+- All execution plans tracked in `docs/exec-plans/`
 - AGENTS.md is the entry point
 
 **Enforcement**:

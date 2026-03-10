@@ -1,0 +1,95 @@
+"""Constants for AI agent configuration."""
+
+REDDIT_SUBREDDITS = [
+    "nyc",
+    "AskNYC",
+    "FoodNYC",
+    "nycbars",
+    "nycfood",
+    "Brooklyn",
+    "queens",
+]
+
+DISCOVERY_QUERIES = [
+    "hidden gem",
+    "underrated",
+    "locals only",
+    "secret spot",
+    "favorite spot",
+    "off the beaten path",
+    "hidden treasure",
+    "lesser known",
+]
+
+TARGET_LOCATIONS = 50
+
+GEM_DISTRIBUTION = {
+    1: {"name": "Iconic", "target_percent": 0.15, "target_count": 8},
+    2: {"name": "Local Favorite", "target_percent": 0.35, "target_count": 17},
+    3: {"name": "Hidden Gem", "target_percent": 0.50, "target_count": 25},
+}
+
+CATEGORY_KEYWORDS = {
+    "cafe": ["coffee", "cafe", "espresso", "bakery", "brunch"],
+    "restaurant": ["restaurant", "dinner", "lunch", "food", "eatery", "dining"],
+    "nature": ["park", "garden", "nature", "outdoor", "trail", "beach"],
+    "historical": ["museum", "historic", "landmark", "memorial", "history"],
+    "museum": ["museum", "gallery", "exhibition", "art"],
+    "shopping": ["shop", "store", "market", "boutique", "vintage"],
+    "adventure": ["adventure", "activity", "experience", "tour"],
+    "relaxation": ["spa", "wellness", "relaxation", "massage", "yoga"],
+    "nightlife": ["bar", "club", "nightlife", "cocktail", "pub", "lounge"],
+    "festival": ["festival", "event", "market", "fair"],
+    "local": ["local", "neighborhood", "community"],
+}
+
+NYC_NEIGHBORHOODS = [
+    "Manhattan",
+    "Brooklyn",
+    "Queens",
+    "Bronx",
+    "Staten Island",
+    "Upper East Side",
+    "Upper West Side",
+    "Midtown",
+    "Downtown",
+    "SoHo",
+    "TriBeCa",
+    "DUMBO",
+    "Williamsburg",
+    "Bushwick",
+    "Greenpoint",
+    "Park Slope",
+    "Brooklyn Heights",
+    "Gowanus",
+    "Red Hook",
+    "Carroll Gardens",
+    "Cobble Hill",
+    "Boerum Hill",
+    "Fort Greene",
+    "Clinton Hill",
+    "Prospect Heights",
+    "Crown Heights",
+    "Bedford-Stuyvesant",
+    "East Village",
+    "West Village",
+    "Greenwich Village",
+    "NoHo",
+    "NoLita",
+    "Little Italy",
+    "Chinatown",
+    "Lower East Side",
+    "Financial District",
+    "Harlem",
+    "East Harlem",
+    "Morningside Heights",
+    "Hamilton Heights",
+    "Washington Heights",
+    "Inwood",
+    "Astoria",
+    "Long Island City",
+    "Flushing",
+    "Jackson Heights",
+    "Ridgewood",
+    "Forest Hills",
+]

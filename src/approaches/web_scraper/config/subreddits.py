@@ -1,0 +1,66 @@
+"""Reddit subreddit and query configuration."""
+
+REDDIT_CONFIG = {
+    "subreddits": [
+        "nyc",
+        "AskNYC",
+        "FoodNYC",
+        "nycbars",
+        "NYCeats",
+        "newyorkcity",
+    ],
+    "search_queries": [
+        "hidden gem",
+        "underrated",
+        "locals only",
+        "secret spot",
+        "off the beaten path",
+        "hidden treasure",
+        "neighborhood favorite",
+        "best kept secret",
+    ],
+    "sort_methods": ["relevance", "new", "top"],
+    "time_filters": ["month", "year", "all"],
+    "min_score": 5,
+    "max_posts_per_query": 25,
+}
+
+REDDIT_SEARCH_PATTERNS = {
+    "location_indicators": [
+        "hidden gem",
+        "underrated",
+        "locals only",
+        "secret",
+        "favorite spot",
+        "must try",
+        "best in",
+        "highly recommend",
+    ],
+    "nyc_boroughs": [
+        "manhattan",
+        "brooklyn",
+        "queens",
+        "bronx",
+        "staten island",
+    ],
+    "neighborhoods": [
+        "williamsburg",
+        "dumbo",
+        "soho",
+        "tribeca",
+        "east village",
+        "west village",
+        "harlem",
+        "astoria",
+        "park slope",
+        "bushwick",
+        "greenpoint",
+        "lower east side",
+        "chinatown",
+        "little italy",
+        "financial district",
+        "midtown",
+        "upper east side",
+        "upper west side",
+    ],
+}

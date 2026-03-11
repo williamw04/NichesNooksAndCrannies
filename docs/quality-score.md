@@ -63,31 +63,39 @@ This document tracks quality metrics for each approach and the overall system.
 ---
 
 ### Web Scraper Approach
-**Grade**: B+ (Implemented, pending tests)  
+**Grade**: B (Needs Reddit scraper update)  
 **Last Updated**: 2026-03-10
 
 | Component | Status | Coverage | Notes |
 |-----------|--------|----------|-------|
 | Types | ✅ Complete | - | Reuses shared types |
 | Config | ✅ Complete | - | settings.py, subreddits.py, constants.py |
-| Reddit Scraper | ✅ Complete | - | PRAW integration |
+| Reddit Scraper | ⚠️ Needs Update | - | PRAW not accessible; use `.json` endpoint |
 | Atlas Obscura Scraper | ✅ Complete | - | BeautifulSoup |
 | Google Maps Client | ✅ Complete | - | Places API |
 | Cross-Reference Engine | ✅ Complete | - | Deduplication |
 | Gem Classifier | ✅ Complete | - | Review count based |
 | Tests | ⚪ Pending | - | Need test execution |
 
+**Reddit Scraping Research**:
+- ✅ Researched 6 alternatives (Pydoll, Crawlee, Scrapling, Apify, .json endpoint, old.reddit.com)
+- ✅ Documented decision: `.json` endpoint primary, Apify backup
+- ✅ Created design doc: `docs/design-docs/reddit-scraping-method.md`
+- ✅ Updated product spec: `docs/product-specs/web-scraper-approach.md`
+- ✅ Created quick reference: `docs/references/reddit-scraping-quick-reference.md`
+
 **Implemented Files**:
 - `src/approaches/web_scraper/config/` - settings.py, subreddits.py, constants.py
-- `src/approaches/web_scraper/scrapers/` - reddit.py, atlas_obscura.py, google_maps.py
+- `src/approaches/web_scraper/scrapers/` - reddit.py (needs update), atlas_obscura.py, google_maps.py
 - `src/approaches/web_scraper/processors/` - cross_reference.py, deduplicator.py, gem_classifier.py
 - `src/approaches/web_scraper/main.py` - Pipeline entry point
 
 **Action Items**:
-- [x] Implement Reddit scraper
-- [x] Implement Atlas Obscura scraper
-- [x] Implement Google Maps client
-- [x] Implement cross-reference engine
+- [x] Research Reddit scraping alternatives
+- [x] Document decision
+- [ ] Implement `reddit_json.py` (`.json` endpoint)
+- [ ] Implement `reddit_apify.py` (backup)
+- [ ] Update/remove old `reddit.py` (PRAW)
 - [ ] Create test suite
 - [ ] Run end-to-end with real APIs
 
@@ -190,19 +198,27 @@ This document tracks quality metrics for each approach and the overall system.
 - [x] Implement Enrichment Agent
 - [x] Create orchestrator
 
-### Phase 3: Testing (In Progress)
+### Phase 3: Reddit Scraping Research ✅ Complete
+- [x] Research 6 alternatives (Pydoll, Crawlee, Scrapling, Apify, .json, old.reddit)
+- [x] Document decision (`.json` endpoint primary, Apify backup)
+- [x] Create design doc
+- [x] Update product spec
+- [x] Create quick reference
+
+### Phase 4: Reddit Scraper Implementation (Next)
+- [ ] Implement `reddit_json.py` scraper
+- [ ] Implement `reddit_apify.py` backup
+- [ ] Remove/update old PRAW-based `reddit.py`
+- [ ] Test with real API calls
+
+### Phase 5: Testing (Pending)
 - [ ] Create AI agent test suite
+- [ ] Create web scraper test suite
 - [ ] Test with mock API responses
 - [ ] Test with real API credentials
 - [ ] Validate output quality
 
-### Phase 4: Web Scraper (Pending)
-- [ ] Create Reddit scraper
-- [ ] Create Atlas Obscura scraper
-- [ ] Create Google Maps client
-- [ ] Create cross-reference engine
-
-### Phase 5: Quality & Output (Pending)
+### Phase 6: Quality & Output (Pending)
 - [ ] Generate 50 locations
 - [ ] Validate gem distribution
 - [ ] Review descriptions

@@ -92,9 +92,26 @@ def complete(
     elif hasattr(message, "reasoning_details") and message.reasoning_details:
         reasoning_text = ""
         for detail in message.reasoning_details:
-            if hasattr(detail, "text"):
+            if isinstance(detail, dict):
+                reasoning_text += detail.get("text", "") or ""
+            elif hasattr(detail, "text"):
                 reasoning_text += detail.text or ""
-        content = reasoning_text or str(message.reasoning_details)
+
+        if reasoning_text:
+            import re
+
+            final_match = re.search(
+                r"(?:Final answer|Answer|Result|The answer is)[:\s]+(.+?)(?:\n|$)",
+                reasoning_text,
+                re.IGNORECASE,
+            )
+            if final_match:
+                content = final_match.group(1).strip()
+            else:
+                lines = reasoning_text.strip().split("\n")
+                content = lines[-1] if lines else reasoning_text
+        else:
+            content = str(message.reasoning_details)
     else:
         content = str(message)
 
@@ -150,17 +167,35 @@ def complete_with_reasoning(
     response = client.chat.completions.create(**kwargs)
     message = response.choices[0].message
 
-    content = message.content or ""
-
     reasoning_content = None
     if hasattr(message, "reasoning_details") and message.reasoning_details:
         reasoning_parts = []
         for detail in message.reasoning_details:
-            if hasattr(detail, "text") and detail.text:
+            if isinstance(detail, dict):
+                text = detail.get("text", "")
+                if text:
+                    reasoning_parts.append(text)
+            elif hasattr(detail, "text") and detail.text:
                 reasoning_parts.append(detail.text)
         reasoning_content = "\n".join(reasoning_parts) if reasoning_parts else None
     elif hasattr(message, "reasoning_content") and message.reasoning_content:
         reasoning_content = message.reasoning_content
+
+    content = message.content or ""
+
+    if not content and reasoning_content:
+        import re
+
+        final_match = re.search(
+            r"(?:Final answer|Answer|Result|The answer is)[:\s]+(.+?)(?:\n|$)",
+            reasoning_content,
+            re.IGNORECASE,
+        )
+        if final_match:
+            content = final_match.group(1).strip()
+        else:
+            lines = reasoning_content.strip().split("\n")
+            content = lines[-1] if lines else ""
 
     usage = response.usage
     if usage:

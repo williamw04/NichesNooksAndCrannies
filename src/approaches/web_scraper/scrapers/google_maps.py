@@ -134,10 +134,10 @@ class GoogleMapsClient:
                 "rating",
                 "user_ratings_total",
                 "price_level",
-                "types",
+                "type",
                 "url",
                 "website",
-                "photos",
+                "photo",
             ]
 
             response = self.client.place(place_id, fields=fields)

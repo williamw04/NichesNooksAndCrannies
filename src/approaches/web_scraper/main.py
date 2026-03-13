@@ -67,9 +67,17 @@ class WebScraperPipeline:
             reddit_results, atlas_results, google_results
         )
 
+        validated_matches = [m for m in matches if m.google_maps_verified]
+
+        logger.info(
+            "Filtered to Google Maps validated locations",
+            total_matches=len(matches),
+            validated=len(validated_matches),
+        )
+
         merged_data = self.deduplicator.merge_candidates(
             self.cross_reference.to_candidates(
-                matches, reddit_results, atlas_results, google_results
+                validated_matches, reddit_results, atlas_results, google_results
             ),
             reddit_results,
             atlas_results,
@@ -120,7 +128,7 @@ class WebScraperPipeline:
         google_results.extend(self.google_maps.search_hidden_gems(max_results=30))
 
         unique_names = set()
-        for result in reddit_results[:30]:
+        for result in reddit_results[:100]:
             normalized = result.name.lower().strip()
             if normalized not in unique_names and not is_chain(result.name):
                 unique_names.add(normalized)
@@ -156,6 +164,8 @@ class WebScraperPipeline:
                 gem_level = item.get("gem_level")
                 if isinstance(gem_level, int):
                     gem_level = GemLevel(gem_level)
+                elif not isinstance(gem_level, GemLevel):
+                    gem_level = GemLevel.HIDDEN_GEM
 
                 description = self._generate_description(item)
                 vibe_summary = self._generate_vibe_summary(item)
@@ -179,7 +189,9 @@ class WebScraperPipeline:
                     price_level=item.get("price_level"),
                     google_maps_url=item.get("google_maps_url"),
                     rating=item.get("rating"),
-                    image_url=item.get("photo_url"),
+                    image_url=(item.get("photo_url") or "")[:500]
+                    if item.get("photo_url")
+                    else None,
                     tags=tags,
                     ai_vibe_summary=vibe_summary,
                     gem_level=gem_level,
@@ -226,8 +238,8 @@ class WebScraperPipeline:
 
     def _generate_description(self, item: dict) -> str:
         name = item.get("name", "This place")
-        neighborhood = item.get("neighborhood", "NYC")
-        category = item.get("category", Category.LOCAL)
+        neighborhood = item.get("neighborhood") or "NYC"
+        category = item.get("category") or Category.LOCAL
         context = item.get("context", "")
 
         atlas_desc = item.get("atlas_description", "")
@@ -258,7 +270,7 @@ class WebScraperPipeline:
         ]
 
         name = item.get("name", "")
-        category = item.get("category", Category.LOCAL)
+        category = item.get("category") or Category.LOCAL
 
         vibe = random.choice(vibes)
 

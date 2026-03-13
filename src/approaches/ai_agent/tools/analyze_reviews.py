@@ -6,6 +6,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from src.approaches.ai_agent.config.settings import get_settings
+from src.approaches.ai_agent.utils.llm_client import complete, enrich
 from src.shared.services.cache import get_cache
 from src.shared.services.logger import get_logger
 
@@ -44,10 +45,15 @@ def analyze_reviews(
     """
     settings = get_settings()
 
-    if not settings.openai_api_key:
+    api_key = (
+        settings.openrouter_api_key
+        if settings.llm_provider == "openrouter"
+        else settings.openai_api_key
+    )
+    if not api_key:
         return AnalyzeReviewsOutput(
-            insights=ReviewInsights(summary="OpenAI API key not configured"),
-            error="OpenAI API key not configured",
+            insights=ReviewInsights(summary="API key not configured"),
+            error="API key not configured",
         )
 
     cache_key = f"reviews:{location_name}:{neighborhood}"
@@ -56,13 +62,6 @@ def analyze_reviews(
         return AnalyzeReviewsOutput(**cached)
 
     try:
-        from openai import OpenAI
-
-        client = OpenAI(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-        )
-
         prompt = f"""Analyze reviews for this NYC location and extract insights.
 
 Location: {location_name}
@@ -82,8 +81,7 @@ Important: If this is a real NYC location, base your analysis on what you know a
 If you're not familiar with it, make reasonable inferences based on the name and type.
 Be specific and avoid generic descriptions."""
 
-        response = client.chat.completions.create(
-            model=settings.openai_model_default,
+        content = complete(
             messages=[
                 {
                     "role": "system",
@@ -93,9 +91,8 @@ Be specific and avoid generic descriptions."""
             ],
             temperature=0.7,
             max_tokens=500,
+            cache_key=cache_key,
         )
-
-        content = response.choices[0].message.content
 
         if content:
             content = content.strip()
@@ -153,17 +150,15 @@ def generate_description(
     """
     settings = get_settings()
 
-    if not settings.openai_api_key:
+    api_key = (
+        settings.openrouter_api_key
+        if settings.llm_provider == "openrouter"
+        else settings.openai_api_key
+    )
+    if not api_key:
         return f"A {category} in {neighborhood or 'NYC'} worth visiting."
 
     try:
-        from openai import OpenAI
-
-        client = OpenAI(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-        )
-
         prompt = f"""Write a compelling 2-3 sentence description for this NYC location.
 
 Location: {location_name}
@@ -182,8 +177,7 @@ Rules:
 
 Write the description:"""
 
-        response = client.chat.completions.create(
-            model=settings.openai_model_enrichment,
+        content = enrich(
             messages=[
                 {
                     "role": "system",
@@ -193,9 +187,9 @@ Write the description:"""
             ],
             temperature=0.8,
             max_tokens=200,
+            enable_reasoning=True,
         )
 
-        content = response.choices[0].message.content
         return (
             content.strip()
             if content
@@ -224,17 +218,15 @@ def generate_vibe_summary(
     """
     settings = get_settings()
 
-    if not settings.openai_api_key:
+    api_key = (
+        settings.openrouter_api_key
+        if settings.llm_provider == "openrouter"
+        else settings.openai_api_key
+    )
+    if not api_key:
         return "A unique spot with character."
 
     try:
-        from openai import OpenAI
-
-        client = OpenAI(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-        )
-
         prompt = f"""Write a short vibe summary for this location (max 20 words).
 
 Location: {location_name}
@@ -251,8 +243,7 @@ Examples: "Moody candlelit cavern with old-school cocktails" or "Sun-drenched pl
 
 Write the vibe summary:"""
 
-        response = client.chat.completions.create(
-            model=settings.openai_model_enrichment,
+        content = enrich(
             messages=[
                 {
                     "role": "system",
@@ -262,9 +253,9 @@ Write the vibe summary:"""
             ],
             temperature=0.8,
             max_tokens=50,
+            enable_reasoning=True,
         )
 
-        content = response.choices[0].message.content
         return content.strip() if content else "A unique spot with character."
 
     except Exception as e:
@@ -291,17 +282,15 @@ def generate_tags(
     """
     settings = get_settings()
 
-    if not settings.openai_api_key:
+    api_key = (
+        settings.openrouter_api_key
+        if settings.llm_provider == "openrouter"
+        else settings.openai_api_key
+    )
+    if not api_key:
         return [category, "nyc", "local-favorite"]
 
     try:
-        from openai import OpenAI
-
-        client = OpenAI(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-        )
-
         prompt = f"""Generate 6-12 vibe-focused tags for this location.
 
 Location: {location_name}
@@ -321,8 +310,7 @@ Example tags: cozy, moody-lighting, date-night, hidden-gem, craft-cocktails, vin
 
 Return tags as a JSON array:"""
 
-        response = client.chat.completions.create(
-            model=settings.openai_model_default,
+        content = complete(
             messages=[
                 {
                     "role": "system",
@@ -333,8 +321,6 @@ Return tags as a JSON array:"""
             temperature=0.7,
             max_tokens=200,
         )
-
-        content = response.choices[0].message.content
 
         if content:
             content = content.strip()

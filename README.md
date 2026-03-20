@@ -3,31 +3,31 @@
 A data collection system for building a database of 50 NYC locations with 3-tier gem classification (Iconic/Local Favorite/Hidden Gem).
 
 # Directory Structure Explained
-NichesNooksAndCrannies/
-│
-├── AGENTS.md              # Entry point for AI agents
-├── ARCHITECTURE.md        # Technical architecture
-├── README.md              # Human-readable overview
-├── pyproject.toml         # Python dependencies
-├── .env.example           # API keys template
-│
-├── docs/                  # All documentation
-│   ├── product-specs/     # WHAT to build (specs)
-│   ├── design-docs/       # WHY (decisions, beliefs)
-│   ├── exec-plans/        # HOW (plans, tech debt)
-│   └── quality-score.md   # Status tracking
-│
-├── src/                   # All source code
-│   ├── shared/            # Reusable foundation
-│   └── approaches/        # Three approaches
-│
-├── data/                  # Data storage
-│   ├── raw/               # Unprocessed API responses
-│   ├── processed/         # Cleaned intermediate data
-│   └── output/            # Final CSV
-│
-└── tests/                 # Test suites
-
+```text
+┏━━ NichesNooksAndCrannies/
+┃   ├── AGENTS.md               # Entry point for AI agents
+┃   ├── ARCHITECTURE.md         # Technical architecture
+┃   ├── README.md               # Human-readable overview
+┃   ├── pyproject.toml          # Python dependencies
+┃   └── .env.example            # API keys template
+┃
+┣━━ docs/                       # All documentation
+┃   ├── product-specs/          # WHAT to build (specs)
+┃   ├── design-docs/            # WHY (decisions, beliefs)
+┃   ├── exec-plans/             # HOW (plans, tech debt)
+┃   └── quality-score.md        # Status tracking
+┃
+┣━━ src/                        # All source code
+┃   ├── shared/                 # Reusable foundation
+┃   └── approaches/             # Three approaches
+┃
+┣━━ data/                       # Data storage
+┃   ├── raw/                    # Unprocessed API responses
+┃   ├── processed/              # Cleaned intermediate data
+┃   └── output/                 # Final CSV
+┃
+┗━━ tests/                      # Test suites
+```
 
 ## Quick Start
 

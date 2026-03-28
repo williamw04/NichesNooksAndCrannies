@@ -71,8 +71,6 @@ class RedditPydollScraper(RedditScraperBase):
 
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--disable-infobars")
-        options.add_argument("--no-first-run")
-        options.add_argument("--no-default-browser-check")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920,1080")

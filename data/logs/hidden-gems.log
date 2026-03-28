@@ -1,0 +1,10 @@
+{"timestamp": "2026-03-13T05:49:19.783713", "level": "INFO", "logger": "__main__", "message": "Starting AI Agent pipeline for 5 locations"}
+{"timestamp": "2026-03-13T05:49:19.783773", "level": "INFO", "logger": "__main__", "message": "Output will be saved to: data/output/locations.csv"}
+{"timestamp": "2026-03-13T05:49:19.783806", "level": "INFO", "logger": "src.approaches.ai_agent.processors.orchestrator", "message": "Starting pipeline for 5 locations"}
+{"timestamp": "2026-03-13T05:49:19.783830", "level": "INFO", "logger": "src.approaches.ai_agent.processors.orchestrator", "message": "Processing gem_level 3, targeting 2 locations"}
+{"timestamp": "2026-03-13T05:49:19.783853", "level": "INFO", "logger": "src.approaches.ai_agent.agents.discovery", "message": "Starting discovery for 4 candidates, focus on gem_level 3"}
+{"timestamp": "2026-03-13T05:49:19.783882", "level": "ERROR", "logger": "src.approaches.ai_agent.processors.orchestrator", "message": "Pipeline error for gem_level 3: 'Settings' object has no attribute 'reddit_client_id'"}
+{"timestamp": "2026-03-13T05:49:19.783904", "level": "INFO", "logger": "src.approaches.ai_agent.processors.orchestrator", "message": "Processing gem_level 2, targeting 1 locations"}
+{"timestamp": "2026-03-13T05:49:19.783923", "level": "INFO", "logger": "src.approaches.ai_agent.agents.discovery", "message": "Starting discovery for 2 candidates, focus on gem_level 2"}
+{"timestamp": "2026-03-13T05:49:19.783946", "level": "ERROR", "logger": "src.approaches.ai_agent.processors.orchestrator", "message": "Pipeline error for gem_level 2: 'Settings' object has no attribute 'reddit_client_id'"}
+{"timestamp": "2026-03-13T05:49:19.784243", "level": "INFO", "logger": "src.approaches.ai_agent.processors.orchestrator", "message": "Pipeline complete: 0 locations in 0.0s", "data": {"gem_distribution": {"1": 0, "2": 0, "3": 0}}}

@@ -1,0 +1,33 @@
+{
+  "searchQueries": [
+    "best cafe spots in New York City",
+    "best restaurant spots in New York City",
+    "best nature spots in New York City",
+    "best historical spots in New York City",
+    "best museum spots in New York City",
+    "best shopping spots in New York City",
+    "best adventure spots in New York City",
+    "best relaxation spots in New York City",
+    "best nightlife spots in New York City",
+    "best festival spots in New York City",
+    "best local spots in New York City"
+  ],
+  "resultsPerPage": 5,
+  "maxItems": 55,
+  "shouldDownloadVideos": false,
+  "shouldDownloadCovers": false,
+  "shouldDownloadSubtitles": false,
+  "shouldDownloadSlideshowImages": false,
+  "profileScrapeSections": ["videos"],
+  "profileSorting": "latest",
+  "excludePinnedPosts": false,
+  "searchSection": "",
+  "maxProfilesPerQuery": 10,
+  "searchSorting": "0",
+  "searchDatePosted": "0",
+  "scrapeRelatedVideos": false,
+  "shouldDownloadAvatars": false,
+  "shouldDownloadMusicCovers": false,
+  "downloadSubtitlesOptions": "NEVER_DOWNLOAD_SUBTITLES",
+  "proxyCountryCode": "None"
+}

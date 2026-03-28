@@ -1,0 +1,31 @@
+{
+  "name": "tiktok-scraper",
+  "version": "1.0.0",
+  "description": "Playwright-based TikTok scraper for NYC Hidden Gems",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/tui.ts",
+    "login": "tsx src/login.ts",
+    "scrape": "tsx src/cli.ts",
+    "scrape:example": "tsx src/cli.ts --input example-input.json",
+    "tui": "tsx src/tui.ts",
+    "dev": "tsx src/index.ts",
+    "debug": "tsx src/debug.ts",
+    "debug:google": "tsx src/debug-google.ts",
+    "debug:search": "tsx src/debug-search.ts"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.0.0",
+    "playwright": "^1.48.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "exponential-backoff": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0"
+  }
+}

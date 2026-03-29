@@ -260,76 +260,91 @@ export class GoogleTikTokScraper {
       const urlAuthorMatch = videoUrl.match(/@([\w.]+)/);
       const authorFromUrl = urlAuthorMatch ? urlAuthorMatch[1] : '';
 
-      let description = '';
-      try {
-        const descSelectors = ['[data-e2e="browse-video-desc"]', '[data-e2e="video-desc"]', 'h1'];
-        for (const sel of descSelectors) {
-          const text = await page.locator(sel).first().textContent();
-          if (text?.trim()) { description = text.trim(); break; }
-        }
-      } catch (_) { /* ignore */ }
+      const ogTitle = await page.locator('meta[property="og:title"]').first().getAttribute('content') || '';
+      const ogDescription = await page.locator('meta[property="og:description"]').first().getAttribute('content') || '';
+      const metaDescription = await page.locator('meta[name="description"]').first().getAttribute('content') || '';
+      const ogImage = await page.locator('meta[property="og:image"]').first().getAttribute('content') || '';
+
+      let description = ogDescription || '';
+      if (!description) {
+        try {
+          description = (await page.locator('[data-e2e="video-desc"]').first().textContent() || '').trim();
+        } catch (_) {}
+      }
       if (!description) description = serpData?.title || '';
 
       let authorNickname = '';
-      let authorFollowers = 0;
-      let verified = false;
-      try {
-        const nameEl = page.locator('[data-e2e="browse-author-name"]').first();
-        authorNickname = await nameEl.textContent() || '';
-        if (!authorNickname) authorNickname = serpData?.creator || authorFromUrl;
-
-        const followersEl = page.locator('[data-e2e="browse-followers"]').first();
-        const fText = await followersEl.textContent() || '0';
-        authorFollowers = this.parseNumber(fText);
-
-        verified = await page.locator('[data-e2e="browse-verified"]').count() > 0;
-      } catch (_) {
-        authorNickname = serpData?.creator || authorFromUrl;
+      const onTiktokMatch = ogTitle.match(/(.+?)\s+on TikTok/);
+      if (onTiktokMatch) authorNickname = onTiktokMatch[1].trim();
+      if (!authorNickname) {
+        const fromMatch = metaDescription.match(/from\s+(.+?)\s*\(@?[\w.]+\)/);
+        if (fromMatch) authorNickname = fromMatch[1].trim();
       }
+      if (!authorNickname) authorNickname = serpData?.creator || authorFromUrl;
 
-      let playCount = 0;
       let diggCount = 0;
       let commentCount = 0;
+      const likesMatch = metaDescription.match(/([\d.]+[KkMmBb]?)\s*Likes?/i);
+      if (likesMatch) diggCount = this.parseNumber(likesMatch[1]);
+      const commentsMatch = metaDescription.match(/([\d.]+[KkMmBb]?)\s*Comments?/i);
+      if (commentsMatch) commentCount = this.parseNumber(commentsMatch[1]);
+
+      try {
+        const likeText = await page.locator('[data-e2e="like-count"]').first().textContent();
+        if (likeText) diggCount = this.parseNumber(likeText);
+      } catch (_) {}
+      try {
+        const commentText = await page.locator('[data-e2e="comment-count"]').first().textContent();
+        if (commentText) commentCount = this.parseNumber(commentText);
+      } catch (_) {}
+
       let shareCount = 0;
       try {
-        playCount = this.parseNumber(await page.locator('[data-e2e="browse-views"]').first().textContent() || '0');
-        diggCount = this.parseNumber(await page.locator('[data-e2e="browse-like-count"]').first().textContent() || '0');
-        commentCount = this.parseNumber(await page.locator('[data-e2e="browse-comment-count"]').first().textContent() || '0');
-        shareCount = this.parseNumber(await page.locator('[data-e2e="browse-share-count"]').first().textContent() || '0');
-      } catch (_) { /* ignore */ }
-      if (playCount === 0 && serpData?.viewCount) playCount = serpData.viewCount;
+        const shareText = await page.locator('[data-e2e="share-count"]').first().textContent();
+        if (shareText) shareCount = this.parseNumber(shareText);
+      } catch (_) {}
 
-      let coverUrl = '';
-      try {
-        const videoEl = page.locator('video').first();
-        const poster = await videoEl.getAttribute('poster');
-        if (poster) coverUrl = poster;
-        if (!coverUrl) {
-          const imgEl = page.locator('img[src*="tiktokcdn"]').first();
-          coverUrl = await imgEl.getAttribute('src') || '';
-        }
-      } catch (_) { /* ignore */ }
+      let coverUrl = ogImage || '';
+      if (!coverUrl) {
+        try {
+          const poster = await page.locator('[data-e2e="feed-video"] video').first().getAttribute('poster');
+          if (poster) coverUrl = poster;
+        } catch (_) {}
+      }
 
       let locationTag = '';
       try {
-        locationTag = await page.locator('[data-e2e="video-location"]').first().textContent() || '';
-      } catch (_) { /* ignore */ }
+        const poiEl = page.locator('[data-e2e="poi-tag"]').first();
+        locationTag = (await poiEl.textContent() || '').trim();
+      } catch (_) {}
+
+      let locationUrl = '';
+      try {
+        const poiLink = page.locator('a[href*="/place/"]').first();
+        locationUrl = await poiLink.getAttribute('href') || '';
+        if (locationUrl && !locationUrl.startsWith('http')) {
+          locationUrl = `https://www.tiktok.com${locationUrl}`;
+        }
+      } catch (_) {}
 
       let musicTitle = '';
       let musicAuthor = '';
       try {
-        const musicText = await page.locator('[data-e2e="browse-music-info"]').first().textContent() || '';
-        const parts = musicText.split('-');
-        if (parts.length >= 2) {
-          musicTitle = parts[0].trim();
-          musicAuthor = parts.slice(1).join('-').trim();
+        const musicText = await page.locator('[data-e2e="video-music"]').first().textContent() || '';
+        if (musicText) {
+          const parts = musicText.split('-');
+          if (parts.length >= 2) {
+            musicTitle = parts[0].trim();
+            musicAuthor = parts.slice(1).join('-').trim();
+          }
         }
-      } catch (_) { /* ignore */ }
+      } catch (_) {}
 
       const hashtags = this.extractHashtags(description);
       const mentions = this.extractMentions(description);
+      const playCount = serpData?.viewCount || 0;
 
-      console.log(`    ✓ @${authorFromUrl} | ${playCount} views | ${hashtags.length} hashtags${locationTag ? ` | 📍 ${locationTag}` : ''}`);
+      console.log(`    ✓ @${authorFromUrl} | ${diggCount} likes | ${commentCount} comments | ${hashtags.length} hashtags${locationTag ? ` | 📍 ${locationTag}` : ''}`);
 
       return {
         id: videoId,
@@ -341,8 +356,8 @@ export class GoogleTikTokScraper {
           nickname: authorNickname.trim(),
           avatarUrl: '',
           signature: '',
-          verified,
-          followers: authorFollowers,
+          verified: false,
+          followers: 0,
           following: 0,
           hearts: 0,
           videoCount: 0
@@ -364,6 +379,7 @@ export class GoogleTikTokScraper {
         isAd: false,
         isPinned: false,
         locationTag,
+        locationUrl,
         musicTitle,
         musicAuthor
       };

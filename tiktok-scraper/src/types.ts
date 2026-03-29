@@ -67,6 +67,7 @@ export interface TikTokVideo {
   downloadedCover?: string;
   subtitles?: string;
   locationTag?: string;
+  locationUrl?: string;
   musicTitle?: string;
   musicAuthor?: string;
 }

@@ -15,7 +15,8 @@
     "debug": "tsx src/debug.ts",
     "debug:google": "tsx src/debug-google.ts",
     "debug:search": "tsx src/debug-search.ts",
-    "debug:video": "tsx src/debug-video.ts"
+    "debug:video": "tsx src/debug-video.ts",
+    "debug:subtitles": "tsx src/debug-subtitles.ts"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.0.0",

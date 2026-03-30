@@ -89,6 +89,20 @@ export class GoogleTikTokScraper {
     return mentions.map(m => m.replace('@', ''));
   }
 
+  private parseVtt(vttText: string): string {
+    const lines = vttText.split('\n');
+    const textLines: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed === 'WEBVTT') continue;
+      if (/^\d{2}:\d{2}:\d{2}\.\d{3}\s*-->/.test(trimmed)) continue;
+      if (/^\d+$/.test(trimmed)) continue;
+      textLines.push(trimmed);
+    }
+    return textLines.join(' ');
+  }
+
   private classifyTikTokUrl(url: string): 'video' | 'search' | 'unknown' {
     if (/tiktok\.com\/@[\w.]+\/video\/\d+/.test(url)) return 'video';
     if (/tiktok\.com\/t\/[\w]+/.test(url)) return 'video';
@@ -252,6 +266,22 @@ export class GoogleTikTokScraper {
   async scrapeTikTokVideo(videoUrl: string, page: Page, serpData?: GoogleSerpResult): Promise<TikTokVideo | null> {
     console.log(`  Scraping video: ${videoUrl.substring(0, 70)}...`);
 
+    let capturedVtt = '';
+
+    const handleResponse = async (response: import('playwright').Response) => {
+      try {
+        const url = response.url();
+        if (!url.includes('tiktokcdn')) return;
+        const body = await response.text().catch(() => '');
+        if (body.startsWith('WEBVTT')) {
+          capturedVtt = body;
+          console.log(`    ✓ Captured VTT captions (${body.length} bytes)`);
+        }
+      } catch (_) {}
+    };
+
+    page.on('response', handleResponse);
+
     try {
       await page.goto(videoUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await this.randomDelay(3000, 5000);
@@ -344,7 +374,11 @@ export class GoogleTikTokScraper {
       const mentions = this.extractMentions(description);
       const playCount = serpData?.viewCount || 0;
 
-      console.log(`    ✓ @${authorFromUrl} | ${diggCount} likes | ${commentCount} comments | ${hashtags.length} hashtags${locationTag ? ` | 📍 ${locationTag}` : ''}`);
+      const subtitles = capturedVtt ? this.parseVtt(capturedVtt) : '';
+
+      console.log(`    ✓ @${authorFromUrl} | ${diggCount} likes | ${commentCount} comments | ${hashtags.length} hashtags${locationTag ? ` | 📍 ${locationTag}` : ''}${subtitles ? ` | 📝 captions` : ''}`);
+
+      page.off('response', handleResponse);
 
       return {
         id: videoId,
@@ -381,9 +415,11 @@ export class GoogleTikTokScraper {
         locationTag,
         locationUrl,
         musicTitle,
-        musicAuthor
+        musicAuthor,
+        subtitles
       };
     } catch (error) {
+      page.off('response', handleResponse);
       const errorMsg = `Failed to scrape video: ${error instanceof Error ? error.message : 'Unknown error'}`;
       console.error(`    ✗ ${errorMsg}`);
       this.stats.errors.push(errorMsg);

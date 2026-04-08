@@ -78,7 +78,7 @@ async function debugVideoPage(page: any, url: string) {
     return results;
   });
   for (const [key, val] of Object.entries(embeddedData)) {
-    console.log(`  ${key}: ${val.substring(0, 200)}`);
+    console.log(`  ${key}: ${(val as string).substring(0, 200)}`);
   }
 
   // 3. Check meta tags (OG tags often have description, etc.)
@@ -179,7 +179,7 @@ async function debugVideoPage(page: any, url: string) {
       if (count > 0) {
         const first = await page.locator(sel).first();
         const text = (await first.textContent() || '').trim();
-        const tag = await first.evaluate(el => el.tagName).catch(() => '');
+        const tag = await first.evaluate((el: HTMLElement) => el.tagName).catch(() => '');
         const dataE2e = await first.getAttribute('data-e2e').catch(() => '');
         const cls = await first.getAttribute('class').catch(() => '');
         console.log(`  ✓ ${sel} [${count}] <${tag}> e2e="${dataE2e}" class="${cls?.substring(0, 60)}" text="${text.substring(0, 80)}"`);

@@ -39,7 +39,7 @@ async function debug() {
 
     for (let i = 0; i < 60; i++) {
       await page.waitForTimeout(500);
-      const text = await captionContainer.textContent().catch(() => '');
+      const text = await captionContainer.textContent().catch(() => '') || '';
       const clean = text.trim();
       if (clean && !seen.has(clean)) {
         seen.add(clean);

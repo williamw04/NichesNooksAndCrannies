@@ -1,17 +1,17 @@
 {
   "searchQueries": [
-    "best cafe spots in New York City",
-    "best restaurant spots in New York City",
-    "best nature spots in New York City",
-    "best historical spots in New York City",
-    "best museum spots in New York City",
-    "best shopping spots in New York City",
-    "best adventure spots in New York City",
-    "best relaxation spots in New York City",
-    "best nightlife spots in New York City",
-    "best festival spots in New York City",
-    "best local spots in New York City"
+    "best cafe spots",
+    "best restaurant spots",
+    "best nature spots",
+    "best museum spots",
+    "best nightlife spots",
+    "hidden gems",
+    "underrated places",
+    "secret spots",
+    "foodie spots",
+    "instagrammable spots"
   ],
+  "city": "nyc",
   "resultsPerPage": 5,
   "maxItems": 55,
   "shouldDownloadVideos": false,
@@ -29,5 +29,7 @@
   "shouldDownloadAvatars": false,
   "shouldDownloadMusicCovers": false,
   "downloadSubtitlesOptions": "NEVER_DOWNLOAD_SUBTITLES",
-  "proxyCountryCode": "None"
+  "proxyCountryCode": "None",
+  "openRouterModel": "google/gemma-3-27b-it:free",
+  "minEngagement": 0
 }

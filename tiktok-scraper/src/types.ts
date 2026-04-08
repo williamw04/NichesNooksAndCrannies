@@ -1,5 +1,6 @@
 export interface TikTokScraperInput {
   searchQueries: string[];
+  city?: string;
   resultsPerPage: number;
   maxItems: number;
   shouldDownloadVideos: boolean;
@@ -18,6 +19,11 @@ export interface TikTokScraperInput {
   shouldDownloadMusicCovers: boolean;
   downloadSubtitlesOptions: 'NEVER_DOWNLOAD_SUBTITLES' | 'DOWNLOAD_SUBTITLES_IF_AVAILABLE';
   proxyCountryCode: string;
+  openRouterApiKey?: string;
+  openRouterModel?: string;
+  minEngagement?: number;
+  categoryKeywords?: Record<string, string[]>;
+  debug?: boolean;
 }
 
 export interface TikTokAuthor {
@@ -110,20 +116,37 @@ export interface TikTokScraperOutput {
   stats: ScraperStats;
 }
 
+export interface SocialProof {
+  likes: number;
+  comments: number;
+  shares: number;
+  collects: number;
+  playCount: number;
+  totalEngagement: number;
+}
+
+export interface AiExtractedLocation {
+  name: string;
+  type: string;
+}
+
+export const DEFAULT_CATEGORY_KEYWORDS: Record<string, string[]> = {
+  cafe: ['cafe', 'coffee', 'espresso', 'latte', 'cappuccino', 'bakery', 'brunch'],
+  restaurant: ['restaurant', 'food', 'dining', 'eat', 'dinner', 'lunch', 'taste', 'delicious', 'yummy'],
+  nature: ['nature', 'park', 'hiking', 'trail', 'beach', 'river', 'lake', 'garden', 'outdoor'],
+  historical: ['historical', 'history', 'landmark', 'monument', 'heritage', 'old'],
+  museum: ['museum', 'gallery', 'exhibition', 'art', 'artifact'],
+  shopping: ['shopping', 'store', 'market', 'boutique', 'mall', 'shop'],
+  adventure: ['adventure', 'explore', 'thrill', 'exciting', 'activity', 'experience'],
+  relaxation: ['relax', 'spa', 'wellness', 'calm', 'peaceful', 'serene', 'quiet'],
+  nightlife: ['nightlife', 'bar', 'club', 'dance', 'party', 'drink', 'pub', 'lounge'],
+  festival: ['festival', 'event', 'celebration', 'fair', 'parade', 'concert'],
+  local: ['local', 'hidden', 'gem', 'secret', 'underrated', 'neighborhood'],
+};
+
 export const DEFAULT_INPUT: TikTokScraperInput = {
-  searchQueries: [
-    'best cafe spots in New York City',
-    'best restaurant spots in New York City',
-    'best nature spots in New York City',
-    'best historical spots in New York City',
-    'best museum spots in New York City',
-    'best shopping spots in New York City',
-    'best adventure spots in New York City',
-    'best relaxation spots in New York City',
-    'best nightlife spots in New York City',
-    'best festival spots in New York City',
-    'best local spots in New York City'
-  ],
+  searchQueries: [],
+  city: '',
   resultsPerPage: 5,
   maxItems: 55,
   shouldDownloadVideos: false,
@@ -141,5 +164,7 @@ export const DEFAULT_INPUT: TikTokScraperInput = {
   shouldDownloadAvatars: false,
   shouldDownloadMusicCovers: false,
   downloadSubtitlesOptions: 'NEVER_DOWNLOAD_SUBTITLES',
-  proxyCountryCode: 'None'
+  proxyCountryCode: 'None',
+  openRouterModel: 'google/gemma-3-27b-it:free',
+  minEngagement: 0,
 };

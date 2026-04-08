@@ -1,216 +1,209 @@
-import { TikTokVideo, TikTokProfile, ScrapingResult } from './types.js';
+import { TikTokVideo, SocialProof, ScrapingResult, DEFAULT_CATEGORY_KEYWORDS } from './types.js';
+import { AiExtractor } from './ai-extractor.js';
 
 export interface LocationExtraction {
   name: string;
   description: string;
   category: string;
-  source: 'tiktok_video' | 'tiktok_profile';
+  source: 'tiktok_video' | 'ai_extraction';
   sourceUrl: string;
+  sourceVideoCount: number;
   hashtags: string[];
   mentions: string[];
   author: string;
   authorFollowers: number;
-  playCount: number;
+  socialProof: SocialProof;
   locationTag?: string;
+  locationUrl?: string;
   music?: string;
+  extractionMethod: 'poi_tag' | 'ai_extraction';
 }
 
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  cafe: ['cafe', 'coffee', 'espresso', 'latte', 'cappuccino', 'bakery', 'brunch'],
-  restaurant: ['restaurant', 'food', 'dining', 'eat', 'dinner', 'lunch', 'taste', 'delicious', 'yummy'],
-  nature: ['nature', 'park', 'hiking', 'trail', 'beach', 'river', 'lake', 'garden', 'outdoor'],
-  historical: ['historical', 'history', 'museum', 'landmark', 'monument', 'heritage', 'old'],
-  museum: ['museum', 'gallery', 'exhibition', 'art', 'artifact'],
-  shopping: ['shopping', 'store', 'market', 'boutique', 'mall', 'shop'],
-  adventure: ['adventure', 'explore', 'thrill', 'exciting', 'activity', 'experience'],
-  relaxation: ['relax', 'spa', 'wellness', 'calm', 'peaceful', 'serene', 'quiet'],
-  nightlife: ['nightlife', 'bar', 'club', 'dance', 'party', 'drink', 'pub', 'lounge'],
-  festival: ['festival', 'event', 'celebration', 'fair', 'parade', 'concert'],
-  local: ['local', 'hidden', 'gem', 'secret', 'underrated', 'neighborhood']
-};
-
-export function extractLocationsFromVideo(video: TikTokVideo, category: string): LocationExtraction[] {
-  const locations: LocationExtraction[] = [];
-
-  if (video.locationTag && video.locationTag.trim()) {
-    const name = video.locationTag.trim();
-    if (isValidLocationName(name)) {
-      locations.push({
-        name,
-        description: video.description,
-        category,
-        source: 'tiktok_video',
-        sourceUrl: video.url,
-        hashtags: video.hashtags,
-        mentions: video.mentions,
-        author: video.author.uniqueId,
-        authorFollowers: video.author.followers,
-        playCount: video.playCount,
-        locationTag: video.locationTag,
-        music: video.musicTitle ? `${video.musicTitle} - ${video.musicAuthor}` : undefined
-      });
-    }
-  }
-
-  const nycHashtags = video.hashtags.filter(h => 
-    ['nyc', 'newyork', 'newyorkcity', 'manhattan', 'brooklyn', 'queens', 'bronx', 'statenisland'].includes(h.toLowerCase())
-  );
-
-  for (const hashtag of video.hashtags) {
-    if (hashtag.toLowerCase().endsWith('nyc') || 
-        hashtag.toLowerCase().endsWith('newyork') ||
-        hashtag.toLowerCase().includes('spot') ||
-        hashtag.toLowerCase().includes('cafe') ||
-        hashtag.toLowerCase().includes('restaurant')) {
-      const possibleLocation = hashtag.replace(/nyc|newyork|spot|cafe|restaurant/gi, '').trim();
-      if (possibleLocation.length > 2 && isValidLocationName(possibleLocation)) {
-        locations.push({
-          name: possibleLocation,
-          description: video.description,
-          category,
-          source: 'tiktok_video',
-          sourceUrl: video.url,
-          hashtags: video.hashtags,
-          mentions: video.mentions,
-          author: video.author.uniqueId,
-          authorFollowers: video.author.followers,
-          playCount: video.playCount,
-          locationTag: video.locationTag,
-          music: video.musicTitle ? `${video.musicTitle} - ${video.musicAuthor}` : undefined
-        });
-      }
-    }
-  }
-
-  const locationPatterns = [
-    /(?:at|in|visit|try|check out)\s+([A-Z][A-Za-z\s&'-]+(?:NYC|New York)?)/gi,
-    /([A-Z][A-Za-z\s&'-]+)\s+(?:in|at)\s+(?:NYC|New York|Manhattan|Brooklyn|Queens|Bronx|Staten Island)/gi,
-    /"([^"]+)"\s*(?:in|at)/gi
-  ];
-
-  const description = video.description;
-  
-  for (const pattern of locationPatterns) {
-    let match;
-    while ((match = pattern.exec(description)) !== null) {
-      const name = match[1].trim();
-      
-      if (isValidLocationName(name)) {
-        locations.push({
-          name,
-          description: video.description,
-          category,
-          source: 'tiktok_video',
-          sourceUrl: video.url,
-          hashtags: video.hashtags,
-          mentions: video.mentions,
-          author: video.author.uniqueId,
-          authorFollowers: video.author.followers,
-          playCount: video.playCount,
-          locationTag: video.locationTag,
-          music: video.musicTitle ? `${video.musicTitle} - ${video.musicAuthor}` : undefined
-        });
-      }
-    }
-  }
-
-  return locations;
+export interface ProcessResultsConfig {
+  aiExtractor?: AiExtractor;
+  categoryKeywords?: Record<string, string[]>;
+  minEngagement?: number;
 }
 
-export function extractLocationsFromProfile(profile: TikTokProfile, category: string): LocationExtraction[] {
-  const locations: LocationExtraction[] = [];
-  
-  const signaturePatterns = [
-    /(?:📍|location:)\s*([A-Za-z\s,.-]+)/gi,
-    /(?:based in|located in)\s+([A-Za-z\s,.-]+)/gi
-  ];
+export function buildSocialProof(video: TikTokVideo): SocialProof {
+  const likes = video.diggCount || 0;
+  const comments = video.commentCount || 0;
+  const shares = video.shareCount || 0;
+  const collects = video.collectCount || 0;
+  const playCount = video.playCount || 0;
 
-  for (const pattern of signaturePatterns) {
-    let match;
-    while ((match = pattern.exec(profile.signature)) !== null) {
-      const name = match[1].trim();
-      if (isValidLocationName(name)) {
-        locations.push({
-          name,
-          description: profile.signature,
-          category,
-          source: 'tiktok_profile',
-          sourceUrl: `https://www.tiktok.com/@${profile.uniqueId}`,
-          hashtags: [],
-          mentions: [],
-          author: profile.uniqueId,
-          authorFollowers: profile.followers,
-          playCount: 0
-        });
-      }
-    }
-  }
-
-  for (const video of profile.videos) {
-    const videoLocations = extractLocationsFromVideo(video, category);
-    locations.push(...videoLocations);
-  }
-
-  return locations;
+  return {
+    likes,
+    comments,
+    shares,
+    collects,
+    playCount,
+    totalEngagement: likes + comments + shares + collects,
+  };
 }
 
-function isValidLocationName(name: string): boolean {
-  if (name.length < 3 || name.length > 100) return false;
-  
-  const invalidWords = ['the', 'a', 'an', 'this', 'that', 'these', 'those', 'my', 'your', 'our', 'best'];
-  const firstWord = name.split(' ')[0].toLowerCase();
-  if (invalidWords.includes(firstWord)) return false;
-  
-  if (/^\d+$/.test(name)) return false;
-  
-  return true;
-}
-
-export function inferCategoryFromQuery(query: string): string {
+export function inferCategoryFromQuery(
+  query: string,
+  categoryKeywords?: Record<string, string[]>,
+): string {
+  const keywords = categoryKeywords || DEFAULT_CATEGORY_KEYWORDS;
   const queryLower = query.toLowerCase();
-  
-  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some(keyword => queryLower.includes(keyword))) {
+
+  for (const [category, words] of Object.entries(keywords)) {
+    if (words.some((keyword) => queryLower.includes(keyword))) {
       return category;
     }
   }
-  
+
   return 'local';
 }
 
-export function deduplicateLocations(locations: LocationExtraction[]): LocationExtraction[] {
-  const seen = new Map<string, LocationExtraction>();
-  
-  for (const location of locations) {
-    const key = location.name.toLowerCase().trim();
-    const existing = seen.get(key);
-    
-    if (!existing) {
-      seen.set(key, location);
-    } else if (location.playCount > existing.playCount) {
-      seen.set(key, location);
-    }
-  }
-  
-  return Array.from(seen.values());
+function cleanLocationName(name: string): string {
+  return name
+    .replace(/\s*·\s*.*$/, '')
+    .trim();
 }
 
-export function processResults(results: ScrapingResult[]): LocationExtraction[] {
-  const allLocations: LocationExtraction[] = [];
-  
-  for (const result of results) {
-    const category = inferCategoryFromQuery(result.query);
-    
-    for (const video of result.videos) {
-      const locations = extractLocationsFromVideo(video, category);
-      allLocations.push(...locations);
-    }
-    
-    for (const profile of result.profiles) {
-      const locations = extractLocationsFromProfile(profile, category);
-      allLocations.push(...locations);
+function normalizeLocationName(name: string): string {
+  return name.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+}
+
+function aggregateSocialProof(proofs: SocialProof[]): SocialProof {
+  return {
+    likes: proofs.reduce((sum, p) => sum + p.likes, 0),
+    comments: proofs.reduce((sum, p) => sum + p.comments, 0),
+    shares: proofs.reduce((sum, p) => sum + p.shares, 0),
+    collects: proofs.reduce((sum, p) => sum + p.collects, 0),
+    playCount: proofs.reduce((sum, p) => sum + p.playCount, 0),
+    totalEngagement: proofs.reduce((sum, p) => sum + p.totalEngagement, 0),
+  };
+}
+
+function deduplicateAndAggregate(
+  locations: LocationExtraction[],
+): LocationExtraction[] {
+  const groups = new Map<
+    string,
+    { locations: LocationExtraction[]; proofs: SocialProof[] }
+  >();
+
+  for (const loc of locations) {
+    const key = normalizeLocationName(loc.name);
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.locations.push(loc);
+      existing.proofs.push(loc.socialProof);
+    } else {
+      groups.set(key, { locations: [loc], proofs: [loc.socialProof] });
     }
   }
-  
-  return deduplicateLocations(allLocations);
+
+  const results: LocationExtraction[] = [];
+
+  for (const [, group] of groups) {
+    const sorted = group.locations.sort(
+      (a, b) => b.socialProof.totalEngagement - a.socialProof.totalEngagement,
+    );
+
+    const best = sorted[0];
+    const aggregated = aggregateSocialProof(group.proofs);
+
+    results.push({
+      ...best,
+      socialProof: aggregated,
+      sourceVideoCount: group.locations.length,
+    });
+  }
+
+  return results.sort(
+    (a, b) => b.socialProof.totalEngagement - a.socialProof.totalEngagement,
+  );
+}
+
+export async function processResults(
+  results: ScrapingResult[],
+  config?: ProcessResultsConfig,
+): Promise<LocationExtraction[]> {
+  const allLocations: LocationExtraction[] = [];
+
+  for (const result of results) {
+    const category = inferCategoryFromQuery(
+      result.query,
+      config?.categoryKeywords,
+    );
+
+    for (const video of result.videos) {
+      if (video.locationTag && video.locationTag.trim()) {
+        const cleanedName = cleanLocationName(video.locationTag);
+        if (cleanedName.length >= 3) {
+          allLocations.push({
+            name: cleanedName,
+            description: video.description,
+            category,
+            source: 'tiktok_video',
+            sourceUrl: video.url,
+            sourceVideoCount: 1,
+            hashtags: video.hashtags,
+            mentions: video.mentions,
+            author: video.author.uniqueId,
+            authorFollowers: video.author.followers,
+            socialProof: buildSocialProof(video),
+            locationTag: video.locationTag,
+            locationUrl: video.locationUrl,
+            music: video.musicTitle
+              ? `${video.musicTitle} - ${video.musicAuthor}`
+              : undefined,
+            extractionMethod: 'poi_tag',
+          });
+        }
+      }
+
+      if (config?.aiExtractor && (video.description || video.subtitles)) {
+        try {
+          const aiLocations = await config.aiExtractor.extractLocations(
+            video.description,
+            video.subtitles || undefined,
+          );
+
+          for (const loc of aiLocations) {
+            allLocations.push({
+              name: loc.name,
+              description: video.description,
+              category: loc.type || category,
+              source: 'ai_extraction',
+              sourceUrl: video.url,
+              sourceVideoCount: 1,
+              hashtags: video.hashtags,
+              mentions: video.mentions,
+              author: video.author.uniqueId,
+              authorFollowers: video.author.followers,
+              socialProof: buildSocialProof(video),
+              music: video.musicTitle
+                ? `${video.musicTitle} - ${video.musicAuthor}`
+                : undefined,
+              extractionMethod: 'ai_extraction',
+            });
+          }
+        } catch (e) {
+          console.log(
+            `  AI extraction failed for video ${video.id}: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          );
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+  }
+
+  const deduped = deduplicateAndAggregate(allLocations);
+
+  const minEngagement = config?.minEngagement || 0;
+  if (minEngagement > 0) {
+    return deduped.filter(
+      (loc) => loc.socialProof.totalEngagement >= minEngagement,
+    );
+  }
+
+  return deduped;
 }

@@ -10,7 +10,7 @@ export async function runScraper(customInput?: Partial<TikTokScraperInput>): Pro
   };
 
   const scraper = new GoogleTikTokScraper(input);
-  
+
   try {
     await scraper.init();
     const results = await scraper.scrape();
@@ -29,5 +29,5 @@ export function saveResults(output: TikTokScraperOutput, outputPath: string): vo
 }
 
 export { GoogleTikTokScraper } from './google-scraper.js';
-export { TikTokScraper } from './scraper.js';
+export { AiExtractor } from './ai-extractor.js';
 export * from './types.js';

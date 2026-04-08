@@ -9,25 +9,26 @@ import {
 import { TikTokScraperInput, DEFAULT_INPUT } from './types.js';
 import { runScraper, saveResults } from './index.js';
 import { processResults } from './processor.js';
+import { AiExtractor } from './ai-extractor.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const PRESET_QUERIES = [
-  'best cafe spots in New York City',
-  'best restaurant spots in New York City',
-  'best nature spots in New York City',
-  'best historical spots in New York City',
-  'best museum spots in New York City',
-  'best shopping spots in New York City',
-  'best adventure spots in New York City',
-  'best relaxation spots in New York City',
-  'best nightlife spots in New York City',
-  'best festival spots in New York City',
-  'best local spots in New York City',
-  'hidden gems NYC',
-  'underrated places NYC',
-  'secret spots New York',
-  'locals only NYC'
+  'best cafe spots',
+  'best restaurant spots',
+  'best nature spots',
+  'best museum spots',
+  'best shopping spots',
+  'best nightlife spots',
+  'hidden gems',
+  'underrated places',
+  'secret spots',
+  'locals only spots',
+  'must visit places',
+  'best views spots',
+  'best date spots',
+  'foodie spots',
+  'instagrammable spots',
 ];
 
 function clearScreen() {
@@ -37,23 +38,24 @@ function clearScreen() {
 function printHeader() {
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║                    TikTok Scraper v1.0                       ║
-║              NYC Hidden Gems Data Collection                 ║
+║                    TikTok Scraper v2.0                       ║
+║              Location Discovery via Social Proof              ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
 }
 
 function printConfigSummary(config: Partial<TikTokScraperInput>) {
+  const hasAiKey = !!(config.openRouterApiKey || process.env.OPENROUTER_API_KEY);
   console.log('\n┌─────────────────────────────────────────────────────────────┐');
   console.log('│                    Current Configuration                    │');
   console.log('├─────────────────────────────────────────────────────────────┤');
   console.log(`│ Search Queries: ${(config.searchQueries?.length || 0).toString().padEnd(46)}│`);
+  console.log(`│ City: ${(config.city || 'Not set').padEnd(54)}│`);
   console.log(`│ Results Per Page: ${(config.resultsPerPage?.toString() || '5').padEnd(44)}│`);
   console.log(`│ Max Items: ${(config.maxItems?.toString() || '55').padEnd(50)}│`);
-  console.log(`│ Max Profiles/Query: ${(config.maxProfilesPerQuery?.toString() || '10').padEnd(41)}│`);
   console.log(`│ Search Sorting: ${(config.searchSorting === '0' ? 'Relevance' : config.searchSorting === '1' ? 'Most Recent' : 'Most Viewed').padEnd(43)}│`);
-  console.log(`│ Download Videos: ${(config.shouldDownloadVideos ? 'Yes' : 'No').padEnd(44)}│`);
-  console.log(`│ Download Covers: ${(config.shouldDownloadCovers ? 'Yes' : 'No').padEnd(44)}│`);
+  console.log(`│ AI Extraction: ${(hasAiKey ? 'Enabled' : 'Disabled').padEnd(44)}│`);
+  console.log(`│ Min Engagement: ${(config.minEngagement?.toString() || '0').padEnd(45)}│`);
   console.log(`│ Proxy: ${(config.proxyCountryCode || 'None').padEnd(53)}│`);
   console.log('└─────────────────────────────────────────────────────────────┘\n');
 }
@@ -361,15 +363,46 @@ async function runScraping(config: TikTokScraperInput): Promise<void> {
     console.log('╚══════════════════════════════════════════════════════════════╝\n');
 
     saveResults(output, outputPath);
-    console.log(`📁 Full results saved to: ${outputPath}`);
+    console.log(`Full results saved to: ${outputPath}`);
 
-    const locations = processResults(output.results);
+    const apiKey = config.openRouterApiKey || process.env.OPENROUTER_API_KEY;
+    const aiExtractor = apiKey
+      ? new AiExtractor(apiKey, config.openRouterModel)
+      : undefined;
+
+    if (aiExtractor) {
+      console.log('AI location extraction: enabled');
+    } else {
+      console.log('AI location extraction: disabled (set OPENROUTER_API_KEY to enable)');
+    }
+
+    const locations = await processResults(output.results, {
+      aiExtractor,
+      categoryKeywords: config.categoryKeywords,
+      minEngagement: config.minEngagement,
+    });
+
     fs.writeFileSync(locationsPath, JSON.stringify(locations, null, 2));
-    console.log(`📍 Extracted ${locations.length} potential locations`);
-    console.log(`📁 Locations saved to: ${locationsPath}`);
+    console.log(`\nExtracted ${locations.length} locations with social validation`);
+    console.log(`Locations saved to: ${locationsPath}`);
+
+    if (locations.length > 0) {
+      const totalEngagement = locations.reduce(
+        (sum, loc) => sum + loc.socialProof.totalEngagement,
+        0,
+      );
+      const avgEngagement = Math.round(totalEngagement / locations.length);
+      console.log(`Average engagement per location: ${avgEngagement}`);
+
+      const topLocations = locations.slice(0, 5);
+      console.log('\nTop locations by engagement:');
+      topLocations.forEach((loc, i) => {
+        console.log(`  ${i + 1}. ${loc.name} (${loc.socialProof.totalEngagement} engagement, ${loc.extractionMethod})`);
+      });
+    }
 
     if (output.stats.errors.length > 0) {
-      console.log('\n⚠️  Errors encountered:');
+      console.log('\nErrors encountered:');
       output.stats.errors.slice(0, 5).forEach((err, i) => {
         console.log(`   ${i + 1}. ${err}`);
       });
@@ -381,7 +414,7 @@ async function runScraping(config: TikTokScraperInput): Promise<void> {
     await confirm({ message: '\nPress enter to continue...', default: true });
 
   } catch (error) {
-    console.error('\n❌ Scraping failed:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('\nScraping failed:', error instanceof Error ? error.message : 'Unknown error');
     await confirm({ message: '\nPress enter to continue...', default: true });
   }
 }

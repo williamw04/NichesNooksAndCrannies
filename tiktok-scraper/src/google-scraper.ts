@@ -179,14 +179,15 @@ export class GoogleTikTokScraper {
       for (let i = dotSplit.length - 1; i >= 0; i--) {
         const segment = dotSplit[i].trim();
         if (!segment) continue;
-        const viewMatch = segment.match(/([\d.]+[KkMmBb]?\+?)(?:\s*views)?$/i);
-        if (viewMatch && viewCount === 0) {
-          const num = this.parseNumber(viewMatch[1]);
-          if (num < 2000 || num > 2100) {
-            viewCount = num;
+          const viewMatch = segment.match(/([\d.]+[KkMmBb]?\+?)(?:\s*views)?$/i);
+          if (viewMatch && viewCount === 0) {
+            const num = this.parseNumber(viewMatch[1]);
+            // Reject 2000–2100 range: Google sometimes puts "2025" (year) where view count goes
+            if (num < 2000 || num > 2100) {
+              viewCount = num;
+            }
+            continue;
           }
-          continue;
-        }
         if (datePattern.test(segment)) continue;
         creator = segment;
         break;
@@ -197,6 +198,7 @@ export class GoogleTikTokScraper {
       const globalViewMatch = text.match(/([\d.]+[KkMmBb]?\+?)\s*views/i);
       if (globalViewMatch) {
         const num = this.parseNumber(globalViewMatch[1]);
+        // Reject 2000–2100 range: Google sometimes puts "2025" (year) where view count goes
         if (num < 2000 || num > 2100) {
           viewCount = num;
         }
@@ -303,6 +305,7 @@ export class GoogleTikTokScraper {
 
       let allLinks = await page.locator('a[href*="tiktok.com"]').all();
       if (allLinks.length === 0) {
+        // No TikTok links found — likely a Google captcha. Pause for manual solve.
         console.log(`No TikTok links found — waiting 15s for user interaction (captcha?)...`);
         await new Promise(r => setTimeout(r, 15000));
         allLinks = await page.locator('a[href*="tiktok.com"]').all();
@@ -420,7 +423,7 @@ export class GoogleTikTokScraper {
           let viewCount = 0;
           let likeCount = 0;
           try {
-            // SpanLikes is misnamed — TikTok reuses this class for view/play count on discover pages
+                  // SpanLikes is misnamed — TikTok reuses this class for view/play count on discover pages
             const viewsText = (await container.locator('span[class*="SpanLikes"]').first().textContent({ timeout: 2000 })) || '';
             viewCount = this.parseNumber(viewsText);
           } catch {}
@@ -485,6 +488,8 @@ export class GoogleTikTokScraper {
         const isVttCandidate =
           contentType.includes('text/vtt') ||
           contentType.includes('text/plain') ||
+          // TikTok CDN serves VTT files with wrong content-type: video/mp4.
+          // Identify them by small size (<2000 bytes) since real videos are much larger.
           (contentType.includes('video/mp4') && contentLength > 0 && contentLength < 2000);
         if (!isVttCandidate) return;
         const body = await response.text().catch(() => '');

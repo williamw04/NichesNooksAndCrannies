@@ -27,6 +27,7 @@ export class AiExtractor {
     for (const model of this.models) {
       try {
         const result = await this.callModel(model, prompt);
+        // Empty results count as failure — try the next model in the chain
         if (result.length > 0) return result;
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Unknown error';
@@ -93,6 +94,8 @@ Video description: "${description}"`;
   }
 
   private parseResponse(content: string): AiExtractedLocation[] {
+    // LLM response may contain markdown fences or explanatory text around the JSON array.
+    // Extract just the array portion via regex rather than parsing the full response.
     const jsonMatch = content.match(/\[[\s\S]*?\]/);
     if (!jsonMatch) return [];
 

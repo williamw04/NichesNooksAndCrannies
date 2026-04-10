@@ -59,6 +59,7 @@ export function inferCategoryFromQuery(
 }
 
 function cleanLocationName(name: string): string {
+  // TikTok POI tags sometimes append extra data after a middle dot (·), e.g. "Cafe · New York"
   return name
     .replace(/\s*·\s*.*$/, '')
     .trim();
@@ -128,6 +129,8 @@ export async function processResults(
   const allLocations: LocationExtraction[] = [];
 
   for (const result of results) {
+    // Category is inferred from the search query, not the video content.
+    // A video found via "best coffee spots" gets category "cafe" regardless of its actual content.
     const category = inferCategoryFromQuery(
       result.query,
       config?.categoryKeywords,
@@ -170,6 +173,7 @@ export async function processResults(
             allLocations.push({
               name: loc.name,
               description: video.description,
+              // AI-extracted locations use the model's type field; POI tags use query-inferred category
               category: loc.type || category,
               source: 'ai_extraction',
               sourceUrl: video.url,

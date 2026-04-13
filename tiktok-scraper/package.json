@@ -11,18 +11,22 @@
     "scrape:example": "tsx src/cli.ts --input example-input.json",
     "tui": "tsx src/tui.ts",
     "dev": "tsx src/index.ts",
-    "debug": "tsx src/debug.ts",
-    "debug:google": "tsx src/debug-google.ts",
-    "debug:search": "tsx src/debug-search.ts",
-    "debug:video": "tsx src/debug-video.ts",
-    "debug:subtitles": "tsx src/debug-subtitles.ts"
+    "test": "tsx test/test-scrape.ts",
+    "test:unit": "node --import tsx --test test/unit/*.test.ts",
+    "debug": "tsx test/debug.ts",
+    "debug:google": "tsx test/debug-google.ts",
+    "debug:search": "tsx test/debug-search.ts",
+    "debug:video": "tsx test/debug-video.ts",
+    "debug:subtitles": "tsx test/debug-subtitles.ts",
+    "debug:captions": "tsx test/debug-captions.ts",
+    "debug:discover": "tsx test/debug-discover-structure.ts",
+    "debug:urls": "tsx test/debug-discover-urls.ts"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.0.0",
     "playwright": "^1.48.0",
     "playwright-extra": "^4.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "exponential-backoff": "^3.1.1"
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

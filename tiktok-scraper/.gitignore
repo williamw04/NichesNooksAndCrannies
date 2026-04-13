@@ -7,3 +7,4 @@ auth/
 debug-*.png
 debug-*.html
 test-input.json
+test-google.json

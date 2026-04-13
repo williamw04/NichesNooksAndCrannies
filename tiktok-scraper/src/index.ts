@@ -30,4 +30,6 @@ export function saveResults(output: TikTokScraperOutput, outputPath: string): vo
 
 export { GoogleTikTokScraper } from './google-scraper.js';
 export { AiExtractor } from './ai-extractor.js';
+export { processResults } from './processor.js';
+export type { LocationExtraction, ProcessResultsConfig } from './processor.js';
 export * from './types.js';

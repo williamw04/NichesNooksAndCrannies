@@ -7,8 +7,8 @@ Extracts named locations from TikTok video descriptions and captions using OpenR
 ## Key Methods
 
 - `extractLocations(description, subtitles?)`: Extracts named locations from text using AI, with model fallback chain (`ai-extractor.ts:21`)
-- `callModel(model, prompt)`: Calls a single OpenRouter model and parses the response (`ai-extractor.ts:61`)
-- `parseResponse(content)`: Extracts JSON array from LLM response text, filtering for valid locations (`ai-extractor.ts:95`)
+- `callModel(model, prompt)`: Calls a single OpenRouter model and parses the response (`ai-extractor.ts:62`)
+- `parseResponse(content)`: Extracts JSON array from LLM response text, filtering for valid locations (`ai-extractor.ts:96`)
 
 ## How It Works
 
@@ -19,9 +19,9 @@ Extracts named locations from TikTok video descriptions and captions using OpenR
 
 ## Weird Details
 
-- **Response parsing via regex**: The LLM response may contain markdown formatting, explanatory text, or code fences around the JSON array. `parseResponse` uses `content.match(/\[[\s\S]*?\]/)` to extract just the array portion rather than trying to parse the full response (`ai-extractor.ts:96`)
+- **Response parsing via regex**: The LLM response may contain markdown formatting, explanatory text, or code fences around the JSON array. `parseResponse` uses `content.match(/\[[\s\S]*?\]/)` to extract just the array portion rather than trying to parse the full response (`ai-extractor.ts:99`)
 - **Four-model fallback chain**: Falls back through `gemma-3-27b-it:free` → `llama-4-maverick:free` → `mistral-small-3.1-24b-instruct:free` → `qwen3-32b:free`. If the preferred model is one of these, it's moved to the front of the chain (`ai-extractor.ts:3-8`)
-- **Empty results trigger fallback**: A model "fails" if it returns an empty array — the code tries the next model even on HTTP success (`ai-extractor.ts:30`)
+- **Empty results trigger fallback**: A model "fails" if it returns an empty array — the code tries the next model even on HTTP success (`ai-extractor.ts:30-31`)
 
 ## Source
 

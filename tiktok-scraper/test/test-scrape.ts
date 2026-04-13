@@ -1,5 +1,5 @@
-import { GoogleTikTokScraper } from './google-scraper.js';
-import { TikTokScraperInput, DEFAULT_INPUT } from './types.js';
+import { GoogleTikTokScraper } from '../src/google-scraper.js';
+import { TikTokScraperInput, DEFAULT_INPUT } from '../src/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';

@@ -50,7 +50,7 @@ Menu-driven interface for configuring queries, settings, then running the scrape
 ### Library / Programmatic
 
 ```ts
-import { runScraper } from './index.js';
+import { runScraper, processResults } from './index.js';
 
 const output = await runScraper({
   searchQueries: ['best coffee shops nyc'],
@@ -58,22 +58,17 @@ const output = await runScraper({
   resultsPerPage: 10,
   maxItems: 50,
 });
+
+const locations = await processResults(output.results);
+console.log(locations);
 ```
-
-### Dev Mode
-
-```bash
-npm run dev
-```
-
-Runs `src/index.ts` directly with default config. Same as library mode but from the command line.
 
 ## Testing
 
 ### Integration Test Suite
 
 ```bash
-npx tsx src/test-scrape.ts
+npm test
 ```
 
 Tests each pipeline component individually against real Google and TikTok pages:
@@ -110,7 +105,6 @@ Ad-hoc scripts for inspecting individual components. Output is verbose with DOM 
   "city": "nyc",
   "resultsPerPage": 5,
   "maxItems": 50,
-  "debug": true,
   "openRouterApiKey": "sk-...",
   "openRouterModel": "google/gemma-3-27b-it:free",
   "minEngagement": 0,

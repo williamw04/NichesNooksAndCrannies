@@ -179,6 +179,7 @@ export class GoogleTikTokScraper {
       for (let i = dotSplit.length - 1; i >= 0; i--) {
         const segment = dotSplit[i].trim();
         if (!segment) continue;
+        if (datePattern.test(segment)) continue;
           const viewMatch = segment.match(/([\d.]+[KkMmBb]?\+?)(?:\s*views)?$/i);
           if (viewMatch && viewCount === 0) {
             const num = this.parseNumber(viewMatch[1]);
@@ -188,7 +189,6 @@ export class GoogleTikTokScraper {
             }
             continue;
           }
-        if (datePattern.test(segment)) continue;
         creator = segment;
         break;
       }

@@ -6,7 +6,7 @@ Transforms raw scraped videos into deduplicated, aggregated locations with socia
 
 ## Key Methods
 
-- `processResults(results, config)`: Main pipeline — extracts locations from all videos, deduplicates, aggregates, and filters by engagement (`processor.ts:124`)
+- `processResults(results, config)`: Main pipeline — extracts locations from all videos, deduplicates, aggregates, and filters by engagement (`processor.ts:125`)
 - `buildSocialProof(video)`: Converts video engagement metrics into a `SocialProof` object (`processor.ts:28`)
 - `inferCategoryFromQuery(query, keywords)`: Maps search query text to a category using keyword matching (`processor.ts:45`)
 
@@ -22,9 +22,9 @@ Transforms raw scraped videos into deduplicated, aggregated locations with socia
 
 ## Weird Details
 
-- **Category from query, not video**: Category is inferred from the search query that found the video, not from the video's content. A video found via "best coffee spots nyc" gets category `cafe` regardless of its actual content (`processor.ts:131`)
-- **AI gets the video's raw category**: When AI extracts locations, `loc.type` from the AI response overrides the query-inferred category. For POI tag extractions, the query category is always used (`processor.ts:173`)
-- **500ms delay between AI calls**: A fixed 500ms sleep between AI extraction calls to avoid rate limiting (`processor.ts:194`)
+- **Category from query, not video**: Category is inferred from the search query that found the video, not from the video's content. A video found via "best coffee spots nyc" gets category `cafe` regardless of its actual content (`processor.ts:131-134`)
+- **AI overrides category**: When AI extracts locations, `loc.type` from the AI response overrides the query-inferred category. For POI tag extractions, the query category is always used (`processor.ts:177`)
+- **500ms delay between AI calls**: A fixed 500ms sleep between AI extraction calls to avoid rate limiting (`processor.ts:198`)
 - **Location name cleaning**: POI tag names are stripped of `·` and everything after it (TikTok sometimes appends extra data after a middle dot) (`processor.ts:61-65`)
 
 ## Source

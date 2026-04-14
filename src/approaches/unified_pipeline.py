@@ -1,64 +1,80 @@
 """Unified pipeline for generating v2 data with all scrapers."""
 
 import argparse
+import csv
 import json
 import sys
 import time
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Protocol
 
-from src.approaches.web_scraper.config.category_queries import get_categories_by_priority
+from src.approaches.web_scraper.config.category_queries import (
+    get_categories_by_priority,
+    get_queries_for_category,
+)
 from src.approaches.web_scraper.config.settings import settings
 from src.approaches.web_scraper.scrapers.atlas_obscura import AtlasObscuraScraper
 from src.approaches.web_scraper.scrapers.eater import EaterScraper
 from src.approaches.web_scraper.scrapers.google_maps import GoogleMapsClient
 from src.approaches.web_scraper.scrapers.nyc_parks import NYCParksScraper
+from src.approaches.web_scraper.scrapers.reddit_base import RedditScraperBase
 from src.approaches.web_scraper.scrapers.reddit_json import RedditJsonScraper
 from src.approaches.web_scraper.scrapers.timeout import TimeoutScraper
 from src.approaches.web_scraper.scrapers.yelp import YelpScraper
 from src.shared.services.logger import get_logger
 from src.shared.types.location import Category, GemLevel, Location
-from src.shared.utils.quality_checks import (
-    filter_valid_locations,
-    get_quality_summary,
-    validate_location_quality,
-)
+from src.shared.utils.quality_checks import filter_valid_locations, get_quality_summary
+from src.shared.utils.validation import determine_gem_level
 
 logger = get_logger("unified_pipeline")
 
 
+class ScraperProtocol(Protocol):
+    """Protocol defining scraper interface for type hints."""
+
+    pass
+
+
 class UnifiedPipeline:
-    """Pipeline that combines all data sources for comprehensive coverage."""
+    """Pipeline that combines all data sources for comprehensive coverage.
+
+    Uses dependency injection for scrapers, enabling testability and flexibility.
+    Use create_pipeline() factory for production, inject mocks for testing.
+    """
 
     def __init__(
         self,
+        reddit: Optional[RedditScraperBase] = None,
+        atlas: Optional[Any] = None,
+        gmaps: Optional[Any] = None,
+        yelp: Optional[Any] = None,
+        timeout: Optional[Any] = None,
+        eater: Optional[Any] = None,
+        nyc_parks: Optional[Any] = None,
         output_dir: Path = Path("data/output"),
         max_locations: int = 50,
-        use_yelp: bool = True,
-        use_timeout: bool = True,
-        use_eater: bool = True,
-        use_nyc_parks: bool = True,
     ):
         self.output_dir = output_dir
         self.max_locations = max_locations
         self.logger = logger
 
-        self.reddit = RedditJsonScraper()
-        self.atlas = AtlasObscuraScraper()
-        self.gmaps = GoogleMapsClient() if settings.google_maps_configured else None
-
-        self.yelp = YelpScraper(api_key=settings.YELP_API_KEY) if use_yelp else None
-        self.timeout = TimeoutScraper() if use_timeout else None
-        self.eater = EaterScraper() if use_eater else None
-        self.nyc_parks = NYCParksScraper() if use_nyc_parks else None
+        self.reddit = reddit
+        self.atlas = atlas
+        self.gmaps = gmaps
+        self.yelp = yelp
+        self.timeout = timeout
+        self.eater = eater
+        self.nyc_parks = nyc_parks
 
         self.candidates: list[dict] = []
         self.locations: list[Location] = []
 
     def discover_from_reddit(self, category: str, limit: int = 10) -> list[dict]:
         """Discover locations from Reddit."""
-        from src.approaches.web_scraper.config.category_queries import get_queries_for_category
+        if not self.reddit:
+            return []
 
         queries = get_queries_for_category(category)
         candidates = []
@@ -88,8 +104,6 @@ class UnifiedPipeline:
         if not self.timeout:
             return []
 
-        from src.approaches.web_scraper.config.category_queries import get_queries_for_category
-
         queries = get_queries_for_category(category)
         timeout_urls = queries.get("timeout_articles", [])
 
@@ -116,8 +130,6 @@ class UnifiedPipeline:
         """Discover locations from Eater NY."""
         if not self.eater:
             return []
-
-        from src.approaches.web_scraper.config.category_queries import get_queries_for_category
 
         queries = get_queries_for_category(category)
         eater_urls = queries.get("eater_maps", [])
@@ -275,8 +287,6 @@ class UnifiedPipeline:
             review_count = candidate.get("review_count", 0)
             social_proof = 2 if candidate.get("source") == "reddit" else 1
 
-            from src.shared.utils.validation import determine_gem_level
-
             gem_level = determine_gem_level(review_count, social_proof)
 
             category = candidate.get("category", "local")
@@ -391,8 +401,6 @@ class UnifiedPipeline:
         date_str = datetime.now().strftime("%Y-%m-%d")
         output_file = version_dir / f"locations_{date_str}.csv"
 
-        import csv
-
         with open(output_file, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(
@@ -447,8 +455,6 @@ class UnifiedPipeline:
             with open(versions_file) as f:
                 versions = json.load(f)
 
-        from collections import Counter
-
         gem_counts = Counter(loc.gem_level for loc in locations)
         cat_counts = Counter(loc.category for loc in locations)
 
@@ -474,6 +480,40 @@ class UnifiedPipeline:
         return output_file
 
 
+def create_pipeline(
+    output_dir: Path = Path("data/output"),
+    max_locations: int = 50,
+    use_yelp: bool = True,
+    use_timeout: bool = True,
+    use_eater: bool = True,
+    use_nyc_parks: bool = True,
+) -> UnifiedPipeline:
+    """Factory function to create a production pipeline with real scrapers.
+
+    This is the standard way to instantiate UnifiedPipeline for production use.
+    For testing, instantiate UnifiedPipeline directly with mock scrapers.
+    """
+    reddit = RedditJsonScraper()
+    atlas = AtlasObscuraScraper()
+    gmaps = GoogleMapsClient() if settings.google_maps_configured else None
+    yelp = YelpScraper(api_key=settings.YELP_API_KEY) if use_yelp else None
+    timeout = TimeoutScraper() if use_timeout else None
+    eater = EaterScraper() if use_eater else None
+    parks = NYCParksScraper() if use_nyc_parks else None
+
+    return UnifiedPipeline(
+        reddit=reddit,
+        atlas=atlas,
+        gmaps=gmaps,
+        yelp=yelp,
+        timeout=timeout,
+        eater=eater,
+        nyc_parks=parks,
+        output_dir=output_dir,
+        max_locations=max_locations,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run unified hidden gems pipeline")
     parser.add_argument(
@@ -489,7 +529,7 @@ def main():
 
     args = parser.parse_args()
 
-    pipeline = UnifiedPipeline(
+    pipeline = create_pipeline(
         output_dir=Path(args.output),
         max_locations=args.max_locations,
         use_yelp=not args.no_yelp,

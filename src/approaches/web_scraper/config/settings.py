@@ -13,6 +13,8 @@ class Settings:
     REDDIT_CLIENT_SECRET: str = os.getenv("REDDIT_CLIENT_SECRET", "")
     REDDIT_USER_AGENT: str = os.getenv("REDDIT_USER_AGENT", "hidden-gems/0.1.0")
     GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
+    YELP_API_KEY: str = os.getenv("YELP_API_KEY", "")
+    SERPAPI_KEY: str = os.getenv("SERPAPI_KEY", "")
 
     OUTPUT_DIR: Path = Path(os.getenv("OUTPUT_DIR", "data/output"))
     MAX_LOCATIONS: int = int(os.getenv("MAX_LOCATIONS", "50"))
@@ -38,6 +40,10 @@ class Settings:
     @property
     def google_maps_configured(self) -> bool:
         return bool(self.GOOGLE_MAPS_API_KEY)
+
+    @property
+    def yelp_configured(self) -> bool:
+        return bool(self.YELP_API_KEY)
 
 
 settings = Settings()

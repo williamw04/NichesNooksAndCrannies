@@ -1,0 +1,12 @@
+{
+  "sequence_counter": 2,
+  "forefront_sequence_counter": 0,
+  "forefront_requests": {},
+  "regular_requests": {
+    "https://www.reddit.com/r/nyc/hot": 1
+  },
+  "in_progress_requests": [],
+  "handled_requests": [
+    "https://www.reddit.com/r/nyc/hot"
+  ]
+}

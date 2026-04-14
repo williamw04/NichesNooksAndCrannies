@@ -1,0 +1,12 @@
+node_modules/
+dist/
+output/
+auth/
+.env
+data/
+*.log
+.DS_Store
+debug-*.png
+debug-*.html
+test-input.json
+test-google.json

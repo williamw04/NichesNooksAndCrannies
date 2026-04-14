@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hidden Gems - Location Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        #header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #header h1 span {
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #search-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #search-input {
+            padding: 10px 16px;
+            border-radius: 24px;
+            border: none;
+            width: 280px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #search-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        #search-input:focus {
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+        }
+
+        #search-btn, #search-area-btn {
+            padding: 10px 20px;
+            border-radius: 24px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        #search-btn {
+            background: linear-gradient(90deg, #ff6b6b, #feca57);
+            color: #1a1a2e;
+        }
+
+        #search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+        }
+
+        #search-area-btn {
+            background: #25d366;
+            color: white;
+            display: none;
+        }
+
+        #search-area-btn.visible {
+            display: block;
+        }
+
+        #search-area-btn:hover {
+            background: #20bd5a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(37,211,102,0.4);
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 10;
+            max-width: 320px;
+        }
+
+        #info-panel h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        #location-count {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        #location-count span {
+            color: #ff6b6b;
+        }
+
+        #current-area {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26,26,46,0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: #ff6b6b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-overlay p {
+            color: white;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        .gm-style-iw {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .marker-popup {
+            padding: 8px;
+        }
+
+        .marker-popup h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .marker-popup .category {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .marker-popup .engagement {
+            display: flex;
+            gap: 12px;
+            font-size: 13px;
+            color: #555;
+            margin-top: 8px;
+        }
+
+        .marker-popup .engagement span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .marker-popup .rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fff3cd;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #856404;
+            margin-bottom: 8px;
+            margin-left: 8px;
+        }
+
+        .marker-popup .address {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .marker-popup .source {
+            font-size: 11px;
+            color: #999;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <p>Finding your location...</p>
+    </div>
+
+    <div id="header">
+        <h1>📍 <span>Hidden Gems</span> Discovery</h1>
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="Search city (e.g., New York, NYC, Manhattan)">
+            <button id="search-btn">Search</button>
+            <button id="search-area-btn">🔍 Search This Area</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="info-panel">
+        <h3>Locations in view</h3>
+        <div id="location-count"><span>0</span> spots</div>
+        <div id="current-area">Detecting your location...</div>
+    </div>
+
+    <script>
+        let map;
+        let markers = [];
+        let locations = [];
+        let userLocation = null;
+        let geocoder;
+        let searchBox;
+
+        const GEM_COLORS = {
+            1: '#ff6b6b',
+            2: '#feca57',
+            3: '#25d366'
+        };
+
+        async function initMap() {
+            const apiKey = await getGoogleMapsApiKey();
+            
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMapCallback`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        async function getGoogleMapsApiKey() {
+            // Check URL parameter first
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlKey = urlParams.get('key');
+            if (urlKey) return urlKey;
+            
+            // Check localStorage (session-only, never persisted to disk)
+            const storedKey = localStorage.getItem('gm_api_key');
+            if (storedKey) return storedKey;
+            
+            // Prompt user - never stored, only in memory for this session
+            const key = prompt('Enter your Google Maps API key:');
+            if (key) {
+                localStorage.setItem('gm_api_key', key);
+            }
+            return key;
+        }
+
+        async function loadLocations() {
+            try {
+                const response = await fetch('../output/');
+                const text = await response.text();
+                
+                const locationFiles = text.match(/locations-\d{4}-\d{2}-\d{2}T[\d-]+Z\.json/g);
+                
+                if (!locationFiles || locationFiles.length === 0) {
+                    console.log('No location files found in directory listing');
+                    const directResponse = await fetch('../output/locations-2026-04-14T09-17-02-112Z.json');
+                    if (directResponse.ok) {
+                        locations = await directResponse.json();
+                        console.log(`Loaded ${locations.length} locations from direct fetch`);
+                        return;
+                    }
+                    locations = [];
+                    return;
+                }
+                
+                const latestFile = locationFiles.sort().reverse()[0];
+                const locationsResponse = await fetch(`../output/${latestFile}`);
+                locations = await locationsResponse.json();
+                
+                console.log(`Loaded ${locations.length} locations from ${latestFile}`);
+            } catch (e) {
+                console.error('Error loading locations:', e);
+                try {
+                    const fallbackResponse = await fetch('../output/locations-2026-04-14T09-17-02-112Z.json');
+                    if (fallbackResponse.ok) {
+                        locations = await fallbackResponse.json();
+                        console.log(`Loaded ${locations.length} locations from fallback`);
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                    locations = [];
+                }
+            }
+        }
+
+        async function initMapCallback() {
+            geocoder = new google.maps.Geocoder();
+            
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 14,
+                center: { lat: 40.7128, lng: -74.006 },
+                styles: [
+                    {
+                        featureType: 'poi',
+                        elementType: 'labels',
+                        stylers: [{ visibility: 'off' }]
+                    }
+                ],
+                disableDefaultUI: false,
+                zoomControl: true,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            await getUserLocation();
+            
+            await loadLocations();
+            displayMarkersInView();
+            
+            document.getElementById('loading').classList.add('hidden');
+            
+            setupSearchInput();
+            setupSearchAreaButton();
+            
+            map.addListener('bounds_changed', () => {
+                document.getElementById('search-area-btn').classList.add('visible');
+                updateLocationCount();
+            });
+        }
+
+        async function getUserLocation() {
+            return new Promise((resolve) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            userLocation = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            
+                            map.setCenter(userLocation);
+                            map.setZoom(14);
+                            
+                            reverseGeocode(userLocation);
+                            resolve(userLocation);
+                        },
+                        (error) => {
+                            console.log('Geolocation denied, using NYC as default');
+                            map.setCenter({ lat: 40.7128, lng: -74.006 });
+                            map.setZoom(12);
+                            document.getElementById('current-area').textContent = 'New York City (default)';
+                            resolve({ lat: 40.7128, lng: -74.006 });
+                        }
+                    );
+                } else {
+                    map.setCenter({ lat: 40.7128, lng: -74.006 });
+                    map.setZoom(12);
+                    document.getElementById('current-area').textContent = 'New York City (default)';
+                    resolve({ lat: 40.7128, lng: -74.006 });
+                }
+            });
+        }
+
+        function reverseGeocode(latlng) {
+            geocoder.geocode({ location: latlng }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const components = results[0].address_components;
+                    let city = 'Unknown';
+                    
+                    for (const component of components) {
+                        if (component.types.includes('locality')) {
+                            city = component.long_name;
+                            break;
+                        } else if (component.types.includes('administrative_area_level_1')) {
+                            city = component.long_name;
+                        }
+                    }
+                    
+                    document.getElementById('current-area').textContent = city;
+                }
+            });
+        }
+
+        function setupSearchInput() {
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+
+        function performSearch() {
+            const query = document.getElementById('search-input').value;
+            if (!query) return;
+
+            geocoder.geocode({ address: query }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const location = results[0].geometry.location;
+                    map.setCenter(location);
+                    map.setZoom(14);
+                    
+                    const latlng = { lat: location.lat(), lng: location.lng() };
+                    reverseGeocode(latlng);
+                    
+                    displayMarkersInView();
+                } else {
+                    alert('Location not found. Please try a different search.');
+                }
+            });
+        }
+
+        function setupSearchAreaButton() {
+            const searchAreaBtn = document.getElementById('search-area-btn');
+            searchAreaBtn.addEventListener('click', () => {
+                displayMarkersInView();
+            });
+        }
+
+        const locationCache = {};
+
+        async function getCoordinatesForLocation(loc) {
+            const locationTag = loc.locationTag || loc.name;
+            if (!locationTag) return null;
+            
+            if (locationCache[locationTag]) {
+                return locationCache[locationTag];
+            }
+            
+            if (loc.latitude && loc.longitude) {
+                locationCache[locationTag] = { lat: loc.latitude, lng: loc.longitude };
+                return locationCache[locationTag];
+            }
+
+            return new Promise((resolve) => {
+                const searchQuery = `${locationTag}, New York, NY`;
+                geocoder.geocode({ address: searchQuery }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        const coords = {
+                            lat: results[0].geometry.location.lat(),
+                            lng: results[0].geometry.location.lng()
+                        };
+                        locationCache[locationTag] = coords;
+                        resolve(coords);
+                    } else {
+                        resolve(null);
+                    }
+                });
+            });
+        }
+
+        function displayMarkersInView() {
+            clearMarkers();
+            
+            const bounds = map.getBounds();
+            if (!bounds) return;
+
+            let visibleCount = 0;
+            let processed = 0;
+            
+            if (locations.length === 0) {
+                document.getElementById('location-count').innerHTML = `<span>0</span> spots`;
+                return;
+            }
+            
+            locations.forEach(async (loc) => {
+                const coords = await getCoordinatesForLocation(loc);
+                
+                if (coords) {
+                    const point = new google.maps.LatLng(coords.lat, coords.lng);
+                    
+                    if (bounds.contains(point)) {
+                        visibleCount++;
+                        addMarker(loc, coords.lat, coords.lng);
+                    }
+                }
+                
+                processed++;
+                if (processed === locations.length) {
+                    document.getElementById('location-count').innerHTML = `<span>${visibleCount}</span> spots`;
+                }
+            });
+        }
+
+        function clearMarkers() {
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+        }
+
+        function addMarker(loc, lat, lng) {
+            const engagement = loc.socialProof?.totalEngagement || 0;
+            
+            const marker = new google.maps.Marker({
+                position: { lat, lng },
+                map: map,
+                title: loc.name || loc.locationTag,
+                animation: google.maps.Animation.DROP,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: Math.min(20, 8 + Math.log(engagement + 1) * 2),
+                    fillColor: GEM_COLORS[loc.gemLevel] || '#ff6b6b',
+                    fillOpacity: 0.8,
+                    strokeColor: 'white',
+                    strokeWeight: 2
+                }
+            });
+
+            const contentString = `
+                <div class="marker-popup">
+                    <h3>${loc.name || loc.locationTag || 'Unknown'}</h3>
+                    <span class="category">${loc.category || 'location'}</span>
+                    ${loc.rating ? `<span class="rating">⭐ ${loc.rating}</span>` : ''}
+                    ${loc.address ? `<div class="address">${loc.address}</div>` : ''}
+                    <div class="engagement">
+                        <span>❤️ ${engagement.toLocaleString()}</span>
+                        ${loc.socialProof?.comments ? `<span>💬 ${loc.socialProof.comments}</span>` : ''}
+                    </div>
+                    <div class="source">Source: ${loc.source || 'TikTok'}</div>
+                </div>
+            `;
+
+            const infoWindow = new google.maps.InfoWindow({
+                content: contentString
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.open(map, marker);
+            });
+
+            markers.push(marker);
+        }
+
+        async function updateLocationCount() {
+            const bounds = map.getBounds();
+            if (!bounds || !locations.length) {
+                document.getElementById('location-count').innerHTML = `<span>0</span> spots`;
+                return;
+            }
+
+            let visibleCount = 0;
+            
+            for (const loc of locations) {
+                const coords = await getCoordinatesForLocation(loc);
+                
+                if (coords) {
+                    const point = new google.maps.LatLng(coords.lat, coords.lng);
+                    if (bounds.contains(point)) {
+                        visibleCount++;
+                    }
+                }
+            }
+
+            document.getElementById('location-count').innerHTML = `<span>${visibleCount}</span> spots`;
+        }
+
+        initMap();
+    </script>
+</body>
+</html>

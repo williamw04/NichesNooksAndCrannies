@@ -144,8 +144,8 @@ class GemClassifier:
         sorted_locations = sorted(
             locations,
             key=lambda x: (
-                -x.get("social_proof_score", 0),
-                -x.get("rating", 0) or 0,
+                -x.get("social_proof_score", 0) or 0,
+                -(x.get("rating") or 0),
                 -(x.get("user_ratings_total") or 0),
             ),
         )

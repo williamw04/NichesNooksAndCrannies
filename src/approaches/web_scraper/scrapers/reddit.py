@@ -1,47 +1,25 @@
-"""Reddit scraper using PRAW."""
+"""Reddit scraper using JSON endpoint (replaces PRAW-based scraper)."""
 
 import re
 import time
 from collections import Counter
-from typing import Optional
+from typing import List, Optional
 
-from src.approaches.web_scraper.config import REDDIT_CONFIG, REDDIT_SEARCH_PATTERNS, settings
+from src.approaches.web_scraper.config import REDDIT_CONFIG, settings
+from src.approaches.web_scraper.scrapers.reddit_base import RedditPost
+from src.approaches.web_scraper.scrapers.reddit_json import RedditJsonScraper
 from src.approaches.web_scraper.types.scraper_result import RedditScrapeResult
 from src.shared.services.logger import get_logger
-from src.shared.services.rate_limiter import get_rate_limiter
+from src.shared.utils.validation import is_valid_location_name
 
 logger = get_logger(__name__)
 
 
 class RedditScraper:
     def __init__(self):
-        self.reddit = None
-        self.rate_limiter = get_rate_limiter("reddit")
-        self._initialized = False
-
-    def _init_reddit(self) -> bool:
-        if self._initialized:
-            return self.reddit is not None
-
+        self._scraper = RedditJsonScraper()
         self._initialized = True
-
-        if not settings.reddit_configured:
-            logger.warning("Reddit credentials not configured")
-            return False
-
-        try:
-            import praw
-
-            self.reddit = praw.Reddit(
-                client_id=settings.REDDIT_CLIENT_ID,
-                client_secret=settings.REDDIT_CLIENT_SECRET,
-                user_agent=settings.REDDIT_USER_AGENT,
-            )
-            logger.info("Reddit client initialized")
-            return True
-        except Exception as e:
-            logger.error("Failed to initialize Reddit client", error=str(e))
-            return False
+        self._filtered_count = 0
 
     def search_subreddit(
         self,
@@ -50,25 +28,26 @@ class RedditScraper:
         sort: str = "relevance",
         time_filter: str = "month",
         limit: int = 25,
-    ) -> list[RedditScrapeResult]:
-        if not self._init_reddit():
-            return []
-
+    ) -> List[RedditScrapeResult]:
         results = []
         try:
-            self.rate_limiter.wait("reddit")
-            subreddit_obj = self.reddit.subreddit(subreddit)
-            posts = subreddit_obj.search(query, sort=sort, time_filter=time_filter, limit=limit)
+            posts = self._scraper.search(subreddit, query, limit=limit, sort=sort)
 
             for post in posts:
                 location_mentions = self._extract_location_mentions(post.title, post.selftext)
 
                 for location_name, context in location_mentions:
+                    is_valid, reason = is_valid_location_name(location_name)
+                    if not is_valid:
+                        self._filtered_count += 1
+                        logger.debug(f"Filtered out: {location_name} ({reason})")
+                        continue
+
                     result = RedditScrapeResult(
                         name=location_name,
                         subreddit=subreddit,
                         post_title=post.title,
-                        post_url=f"https://reddit.com{post.permalink}",
+                        post_url=post.url,
                         score=post.score,
                         num_comments=post.num_comments,
                         context=context,
@@ -83,43 +62,24 @@ class RedditScraper:
 
     def _extract_location_mentions(
         self, title: str, selftext: Optional[str]
-    ) -> list[tuple[str, str]]:
+    ) -> List[tuple[str, str]]:
         mentions = []
         text = f"{title} {selftext or ''}"
 
         patterns = [
-            r"([A-Z][a-zA-Z\s&'\-]+(?:Cafe|Restaurant|Bar|Shop|Store|Market|Park|Museum|Gallery|Bakery|Brewery|Pub))",
-            r"(?:try|visit|check out|go to|recommend|love)\s+([A-Z][a-zA-Z\s&'\-]{2,30})",
-            r"([A-Z][a-zA-Z\s&'\-]{2,30})\s+(?:is|has|serves|offers)",
+            r"([A-Z][a-zA-Z\s&'\-]+(?:Cafe|Restaurant|Bar|Shop|Store|Market|Park|Museum|Gallery|Bakery|Brewery|Pub|Bistro|Diner|Tavern|Grill|Kitchen))",
+            r"([A-Z][a-zA-Z\s&'\-]{3,25}(?:Cafe|Restaurant|Bar|Shop|Store|Market|Park|Museum|Gallery|Bakery|Brewery|Pub))",
         ]
 
         for pattern in patterns:
             matches = re.findall(pattern, text)
             for match in matches:
                 name = match.strip()
-                if len(name) > 3 and not self._is_generic(name):
+                if len(name) > 5 and len(name) < 100:
                     context = self._extract_context(text, name)
                     mentions.append((name, context))
 
         return mentions
-
-    def _is_generic(self, name: str) -> bool:
-        generic_terms = {
-            "the best",
-            "a great",
-            "my favorite",
-            "this place",
-            "that place",
-            "the place",
-            "any good",
-            "some good",
-            "hidden gem",
-            "underrated",
-            "new york",
-            "nyc",
-        }
-        name_lower = name.lower()
-        return any(term in name_lower for term in generic_terms)
 
     def _extract_context(self, text: str, name: str, context_chars: int = 150) -> str:
         idx = text.lower().find(name.lower())
@@ -137,11 +97,7 @@ class RedditScraper:
 
         return context
 
-    def scrape_all(self) -> list[RedditScrapeResult]:
-        if not self._init_reddit():
-            logger.warning("Reddit not configured, skipping scrape")
-            return []
-
+    def scrape_all(self) -> List[RedditScrapeResult]:
         all_results = []
         subreddits = REDDIT_CONFIG["subreddits"]
         queries = REDDIT_CONFIG["search_queries"]
@@ -162,11 +118,12 @@ class RedditScraper:
             "Reddit scrape complete",
             total_results=len(all_results),
             unique_locations=len(aggregated),
+            filtered=self._filtered_count,
         )
 
         return aggregated
 
-    def _aggregate_results(self, results: list[RedditScrapeResult]) -> list[RedditScrapeResult]:
+    def _aggregate_results(self, results: List[RedditScrapeResult]) -> List[RedditScrapeResult]:
         if not results:
             return []
 
@@ -192,24 +149,25 @@ class RedditScraper:
 
         return aggregated
 
-    def get_hot_posts(self, subreddit: str, limit: int = 25) -> list[RedditScrapeResult]:
-        if not self._init_reddit():
-            return []
-
+    def get_hot_posts(self, subreddit: str, limit: int = 25) -> List[RedditScrapeResult]:
         results = []
         try:
-            self.rate_limiter.wait("reddit")
-            subreddit_obj = self.reddit.subreddit(subreddit)
+            posts = self._scraper.get_hot(subreddit, limit=limit)
 
-            for post in subreddit_obj.hot(limit=limit):
+            for post in posts:
                 location_mentions = self._extract_location_mentions(post.title, post.selftext)
 
                 for location_name, context in location_mentions:
+                    is_valid, reason = is_valid_location_name(location_name)
+                    if not is_valid:
+                        self._filtered_count += 1
+                        continue
+
                     result = RedditScrapeResult(
                         name=location_name,
                         subreddit=subreddit,
                         post_title=post.title,
-                        post_url=f"https://reddit.com{post.permalink}",
+                        post_url=post.url,
                         score=post.score,
                         num_comments=post.num_comments,
                         context=context,

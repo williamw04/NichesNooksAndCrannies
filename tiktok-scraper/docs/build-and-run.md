@@ -37,6 +37,14 @@ Supports any JSON file matching `TikTokScraperInput`:
 npm run scrape -- --input my-config.json
 ```
 
+### CLI — Validation
+
+```bash
+npm run scrape -- --validate
+```
+
+Geocodes locations stored in SQLite using Google Maps Places Text Search API. Updates coordinates, addresses, ratings, and place IDs.
+
 ### Interactive TUI
 
 ```bash
@@ -50,7 +58,7 @@ Menu-driven interface for configuring queries, settings, then running the scrape
 ### Library / Programmatic
 
 ```ts
-import { runScraper, processResults } from './index.js';
+import { runScraper, processResults, validateLocations } from './index.js';
 
 const output = await runScraper({
   searchQueries: ['best coffee shops nyc'],
@@ -61,6 +69,12 @@ const output = await runScraper({
 
 const locations = await processResults(output.results);
 console.log(locations);
+
+// Validate with Google Maps Places API
+await validateLocations({
+  storage: { sqlitePath: 'data/locations.db' },
+  apiKey: process.env.GOOGLE_MAPS_API_KEY!,
+});
 ```
 
 ## Testing
@@ -105,8 +119,6 @@ Ad-hoc scripts for inspecting individual components. Output is verbose with DOM 
   "city": "nyc",
   "resultsPerPage": 5,
   "maxItems": 50,
-  "openRouterApiKey": "sk-...",
-  "openRouterModel": "google/gemma-3-27b-it:free",
   "minEngagement": 0,
   "categoryKeywords": { "cafe": ["coffee", "espresso"] }
 }
@@ -119,14 +131,17 @@ Ad-hoc scripts for inspecting individual components. Output is verbose with DOM 
 | `resultsPerPage` | `5` | Max video URLs to collect per query |
 | `maxItems` | `55` | Total videos to scrape across all queries |
 | `debug` | `false` | Dumps `<a>` element HTML for each SERP result |
-| `openRouterApiKey` | env `OPENROUTER_API_KEY` | Enables AI location extraction |
 | `minEngagement` | `0` | Minimum likes+comments to include a video |
 
 ### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `OPENROUTER_API_KEY` | OpenRouter API key for AI location extraction |
+| `QWEN_API_KEY` | DashScope API key for AI location extraction |
+| `GOOGLE_MAPS_API_KEY` | Google Maps API key for validation (Places Text Search) |
+| `SUPABASE_URL` | Supabase project URL for remote storage |
+| `SUPABASE_KEY` | Supabase service role key |
+| `SQLITE_PATH` | Path to SQLite database (default: `data/locations.db`) |
 
 ## Output
 

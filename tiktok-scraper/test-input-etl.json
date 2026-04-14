@@ -1,0 +1,8 @@
+{
+  "searchQueries": ["best coffee shop nyc"],
+  "city": "nyc",
+  "resultsPerPage": 3,
+  "maxItems": 3,
+  "minEngagement": 0,
+  "openRouterApiKey": null
+}

@@ -36,7 +36,7 @@ describe('AiExtractor — parseResponse (via extractLocations)', () => {
   it('extracts locations from clean JSON response', async () => {
     globalThis.fetch = () => Promise.resolve(MOCK_RESPONSE as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('Great coffee at Central Perk Cafe!');
+    const results = await extractor.extractLocations('best coffee shops nyc', 'Great coffee at Central Perk Cafe!');
     assert.equal(results.length, 1);
     assert.equal(results[0].name, 'Central Perk Cafe');
     assert.equal(results[0].type, 'cafe');
@@ -50,7 +50,7 @@ describe('AiExtractor — parseResponse (via extractLocations)', () => {
       }),
     } as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('Blue Bottle is great');
+    const results = await extractor.extractLocations('best coffee nyc', 'Blue Bottle is great');
     assert.equal(results.length, 1);
     assert.equal(results[0].name, 'Blue Bottle');
   });
@@ -63,7 +63,7 @@ describe('AiExtractor — parseResponse (via extractLocations)', () => {
       }),
     } as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('Stumptown coffee');
+    const results = await extractor.extractLocations('coffee spots', 'Stumptown coffee');
     assert.equal(results.length, 1);
     assert.equal(results[0].name, 'Stumptown');
   });
@@ -76,7 +76,7 @@ describe('AiExtractor — parseResponse (via extractLocations)', () => {
       }),
     } as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('AB and Real Place');
+    const results = await extractor.extractLocations('food', 'AB and Real Place');
     assert.equal(results.length, 1);
     assert.equal(results[0].name, 'Real Place');
   });
@@ -89,7 +89,7 @@ describe('AiExtractor — parseResponse (via extractLocations)', () => {
       }),
     } as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('No places here');
+    const results = await extractor.extractLocations('test', 'No places here');
     assert.equal(results.length, 0);
   });
 
@@ -101,7 +101,7 @@ describe('AiExtractor — parseResponse (via extractLocations)', () => {
       }),
     } as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('Something');
+    const results = await extractor.extractLocations('test', 'Something');
     assert.equal(results.length, 0);
   });
 
@@ -113,13 +113,13 @@ describe('AiExtractor — parseResponse (via extractLocations)', () => {
       }),
     } as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('Mystery Place');
+    const results = await extractor.extractLocations('test', 'Mystery Place');
     assert.equal(results.length, 1);
     assert.equal(results[0].type, 'unknown');
   });
 });
 
-describe('AiExtractor — fallback chain', () => {
+describe('AiExtractor — single model (Qwen)', () => {
   let originalFetch: typeof globalThis.fetch;
   let fetchCalls: string[];
 
@@ -132,72 +132,40 @@ describe('AiExtractor — fallback chain', () => {
     globalThis.fetch = originalFetch;
   });
 
-  it('falls back to next model on empty results', async () => {
-    let callCount = 0;
-    globalThis.fetch = ((url: any, opts: any) => {
-      fetchCalls.push(JSON.parse(opts.body).model);
-      callCount++;
-      if (callCount === 1) return Promise.resolve(MOCK_EMPTY_RESPONSE as any);
-      return Promise.resolve(MOCK_RESPONSE as any);
-    }) as any;
-
-    const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('Central Perk Cafe');
-    assert.equal(results.length, 1);
-    assert.equal(results[0].name, 'Central Perk Cafe');
-    assert.equal(fetchCalls.length, 2);
-    assert.notEqual(fetchCalls[0], fetchCalls[1]);
-  });
-
-  it('falls back to next model on HTTP error', async () => {
-    let callCount = 0;
-    globalThis.fetch = ((url: any, opts: any) => {
-      fetchCalls.push(JSON.parse(opts.body).model);
-      callCount++;
-      if (callCount === 1) return Promise.resolve(MOCK_ERROR_RESPONSE as any);
-      return Promise.resolve(MOCK_RESPONSE as any);
-    }) as any;
-
-    const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('Central Perk Cafe');
-    assert.equal(results.length, 1);
-    assert.equal(fetchCalls.length, 2);
-  });
-
-  it('returns empty when all models fail', async () => {
+  it('returns empty on HTTP error', async () => {
     globalThis.fetch = () => Promise.resolve(MOCK_ERROR_RESPONSE as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('test');
+    const results = await extractor.extractLocations('test', 'Central Perk Cafe');
     assert.equal(results.length, 0);
   });
 
-  it('returns empty when all models return empty arrays', async () => {
+  it('returns empty on empty results', async () => {
     globalThis.fetch = () => Promise.resolve(MOCK_EMPTY_RESPONSE as any);
     const extractor = new AiExtractor('test-key');
-    const results = await extractor.extractLocations('test');
+    const results = await extractor.extractLocations('test', 'test');
     assert.equal(results.length, 0);
   });
 
-  it('uses preferred model first', async () => {
-    const preferredModel = 'qwen/qwen3-32b:free';
-    globalThis.fetch = ((url: any, opts: any) => {
+  it('uses provided model', async () => {
+    const customModel = 'qwen-max';
+    globalThis.fetch = ((_url: any, opts: any) => {
       fetchCalls.push(JSON.parse(opts.body).model);
       return Promise.resolve(MOCK_RESPONSE as any);
     }) as any;
 
-    const extractor = new AiExtractor('test-key', preferredModel);
-    await extractor.extractLocations('test');
-    assert.equal(fetchCalls[0], preferredModel);
+    const extractor = new AiExtractor('test-key', { model: customModel });
+    await extractor.extractLocations('test', 'test');
+    assert.equal(fetchCalls[0], customModel);
   });
 
-  it('does not call more models after success', async () => {
-    globalThis.fetch = ((url: any, opts: any) => {
+  it('calls model only once on success', async () => {
+    globalThis.fetch = ((_url: any, opts: any) => {
       fetchCalls.push(JSON.parse(opts.body).model);
       return Promise.resolve(MOCK_RESPONSE as any);
     }) as any;
 
     const extractor = new AiExtractor('test-key');
-    await extractor.extractLocations('test');
+    await extractor.extractLocations('test', 'test');
     assert.equal(fetchCalls.length, 1);
   });
 });

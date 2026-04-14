@@ -25,6 +25,25 @@ export interface ProcessResultsConfig {
   minEngagement?: number;
 }
 
+// Generic location names to skip — neighborhoods, boroughs, cities, areas
+// These are not specific business/venue names
+const GENERIC_LOCATIONS = [
+  // Boroughs
+  'manhattan', 'brooklyn', 'queens', 'bronx', 'staten island',
+  // Cities
+  'new york', 'nyc', 'new york city',
+  // Common NYC neighborhoods
+  'east village', 'west village', 'greenwich village', 'soho', 'tribeca', 
+  'lower east side', 'upper east side', 'upper west side', 'midtown',
+  'chelsea', 'harlem', 'williamsburg', 'dumbo', 'bushwick', 'astoria',
+  'financial district', 'flatiron', 'nomad', 'hell\'s kitchen', 'hells kitchen',
+  'little Italy', 'chinatown', 'koreatown', 'murray hill', 'gramercy',
+  'park slope', 'carroll gardens', 'cobble hill', 'brooklyn heights',
+  'long island city', 'ridgewood', 'greenpoint', 'bedford stuyvesant',
+  // Generic area names
+  'downtown', 'uptown', 'midtown east', 'midtown west',
+];
+
 export function buildSocialProof(video: TikTokVideo): SocialProof {
   const likes = video.diggCount || 0;
   const comments = video.commentCount || 0;
@@ -67,6 +86,22 @@ function cleanLocationName(name: string): string {
 
 function normalizeLocationName(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+}
+
+function isGenericLocation(name: string): boolean {
+  const normalized = normalizeLocationName(name);
+  return GENERIC_LOCATIONS.some(generic => 
+    normalizeLocationName(generic) === normalized
+  );
+}
+
+function hasUsableContent(video: TikTokVideo): boolean {
+  const hasDescription = video.description && video.description.trim().length > 0;
+  const hasSubtitles = video.subtitles && video.subtitles.trim().length > 0;
+  const hasPoiTag = video.locationTag && video.locationTag.trim().length > 0;
+  
+  // Rule: skip if no description AND no subtitles AND no POI tag
+  return Boolean(hasDescription || hasSubtitles || hasPoiTag);
 }
 
 function aggregateSocialProof(proofs: SocialProof[]): SocialProof {
@@ -137,34 +172,16 @@ export async function processResults(
     );
 
     for (const video of result.videos) {
-      if (video.locationTag && video.locationTag.trim()) {
-        const cleanedName = cleanLocationName(video.locationTag);
-        if (cleanedName.length >= 3) {
-          allLocations.push({
-            name: cleanedName,
-            description: video.description,
-            category,
-            source: 'tiktok_video',
-            sourceUrl: video.url,
-            sourceVideoCount: 1,
-            hashtags: video.hashtags,
-            mentions: video.mentions,
-            author: video.author.uniqueId,
-            authorFollowers: video.author.followers,
-            socialProof: buildSocialProof(video),
-            locationTag: video.locationTag,
-            locationUrl: video.locationUrl,
-            music: video.musicTitle
-              ? `${video.musicTitle} - ${video.musicAuthor}`
-              : undefined,
-            extractionMethod: 'poi_tag',
-          });
-        }
+      // Rule: skip video if no description AND no subtitles AND no POI tag
+      if (!hasUsableContent(video)) {
+        continue;
       }
 
+      // AI extraction: primary method when description or subtitles available
       if (config?.aiExtractor && (video.description || video.subtitles)) {
         try {
           const aiLocations = await config.aiExtractor.extractLocations(
+            result.query,
             video.description,
             video.subtitles || undefined,
           );
@@ -173,7 +190,6 @@ export async function processResults(
             allLocations.push({
               name: loc.name,
               description: video.description,
-              // AI-extracted locations use the model's type field; POI tags use query-inferred category
               category: loc.type || category,
               source: 'ai_extraction',
               sourceUrl: video.url,
@@ -196,6 +212,33 @@ export async function processResults(
         }
 
         await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      // POI tag extraction: secondary method
+      // Rule: skip if POI tag is generic (neighborhood, city, borough)
+      if (video.locationTag && video.locationTag.trim()) {
+        const cleanedName = cleanLocationName(video.locationTag);
+        if (cleanedName.length >= 3 && !isGenericLocation(cleanedName)) {
+          allLocations.push({
+            name: cleanedName,
+            description: video.description,
+            category,
+            source: 'tiktok_video',
+            sourceUrl: video.url,
+            sourceVideoCount: 1,
+            hashtags: video.hashtags,
+            mentions: video.mentions,
+            author: video.author.uniqueId,
+            authorFollowers: video.author.followers,
+            socialProof: buildSocialProof(video),
+            locationTag: video.locationTag,
+            locationUrl: video.locationUrl,
+            music: video.musicTitle
+              ? `${video.musicTitle} - ${video.musicAuthor}`
+              : undefined,
+            extractionMethod: 'poi_tag',
+          });
+        }
       }
     }
   }

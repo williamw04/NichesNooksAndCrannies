@@ -1,0 +1,26 @@
+{
+  "searchQueries": [
+    "hidden gem cafes nyc",
+    "underrated coffee shops new york",
+    "secret coffee spots manhattan",
+    "best hidden restaurants nyc",
+    "underrated food spots new york",
+    "secret dining spots brooklyn",
+    "hidden gem bars nyc",
+    "speakeasies new york",
+    "secret nightlife spots manhattan",
+    "hidden parks nyc",
+    "secret gardens manhattan",
+    "underrated nature spots new york",
+    "hidden gem museums nyc",
+    "secret art galleries new york",
+    "underrated cultural spots manhattan",
+    "vintage shops nyc hidden",
+    "secret shopping spots new york",
+    "underrated boutiques brooklyn"
+  ],
+  "city": "nyc",
+  "resultsPerPage": 5,
+  "maxItems": 100,
+  "minEngagement": 500
+}

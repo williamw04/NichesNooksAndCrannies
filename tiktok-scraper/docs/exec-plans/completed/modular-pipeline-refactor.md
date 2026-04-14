@@ -1,5 +1,7 @@
 # Exec Plan: Modular Pipeline Refactor
 
+## Status: COMPLETED
+
 ## Goal
 
 Refactor the monolithic `GoogleTikTokScraper.scrape()` into composable stages so we can run different discovery flows (Google SERP, AI tags, hybrid) without code duplication.

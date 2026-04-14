@@ -6,10 +6,13 @@ import {
   checkbox,
   editor
 } from '@inquirer/prompts';
+import 'dotenv/config';
 import { TikTokScraperInput, DEFAULT_INPUT } from './types.js';
-import { runScraper, saveResults } from './index.js';
+import { runScraper, runPipeline, saveResults, createStorage, exportToCsv } from './index.js';
 import { processResults } from './processor.js';
 import { AiExtractor } from './ai-extractor.js';
+import { PipelineMode } from './pipeline/types.js';
+import { StorageConfig } from './storage/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -44,11 +47,13 @@ function printHeader() {
 `);
 }
 
-function printConfigSummary(config: Partial<TikTokScraperInput>) {
+function printConfigSummary(config: Partial<TikTokScraperInput> & { mode?: PipelineMode }) {
   const hasAiKey = !!(config.openRouterApiKey || process.env.OPENROUTER_API_KEY);
+  const modeDisplay = config.mode || 'google';
   console.log('\n┌─────────────────────────────────────────────────────────────┐');
   console.log('│                    Current Configuration                    │');
   console.log('├─────────────────────────────────────────────────────────────┤');
+  console.log(`│ Mode: ${modeDisplay.padEnd(56)}│`);
   console.log(`│ Search Queries: ${(config.searchQueries?.length || 0).toString().padEnd(46)}│`);
   console.log(`│ City: ${(config.city || 'Not set').padEnd(54)}│`);
   console.log(`│ Results Per Page: ${(config.resultsPerPage?.toString() || '5').padEnd(44)}│`);
@@ -337,10 +342,11 @@ async function loadConfiguration(): Promise<TikTokScraperInput | null> {
   return JSON.parse(content);
 }
 
-async function runScraping(config: TikTokScraperInput): Promise<void> {
+async function runScraping(config: TikTokScraperInput & { mode?: PipelineMode }): Promise<void> {
   clearScreen();
   printHeader();
   console.log('Running Scraper...\n');
+  console.log(`Mode: ${config.mode || 'google'}\n`);
   console.log('Press Ctrl+C to stop\n');
 
   const outputDir = path.join(process.cwd(), 'output');
@@ -350,33 +356,58 @@ async function runScraping(config: TikTokScraperInput): Promise<void> {
 
   try {
     console.log('Initializing browser...');
-    const output = await runScraper(config);
+
+    const mode = config.mode || 'google';
+    let outputResults: import('./types.js').ScrapingResult[];
+    let outputStats: import('./types.js').ScraperStats;
+
+    if (mode === 'google') {
+      const output = await runScraper(config);
+      outputResults = output.results;
+      outputStats = output.stats;
+      saveResults(output, outputPath);
+    } else {
+      const pipelineResult = await runPipeline({
+        mode,
+        queries: config.searchQueries,
+        city: config.city,
+        resultsPerPage: config.resultsPerPage,
+        maxItems: config.maxItems,
+        debug: config.debug,
+        openRouterApiKey: config.openRouterApiKey || process.env.OPENROUTER_API_KEY,
+        openRouterModel: config.openRouterModel,
+      });
+      outputResults = pipelineResult.results;
+      outputStats = pipelineResult.stats;
+      const fullOutput = { input: { ...config, mode }, results: pipelineResult.results, stats: pipelineResult.stats };
+      if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+      fs.writeFileSync(outputPath, JSON.stringify(fullOutput, null, 2));
+    }
 
     console.log('\n╔══════════════════════════════════════════════════════════════╗');
     console.log('║                    Scraping Complete                         ║');
     console.log('╠══════════════════════════════════════════════════════════════╣');
-    console.log(`║ Total Videos: ${output.stats.totalVideos.toString().padEnd(47)}║`);
-    console.log(`║ Total Profiles: ${output.stats.totalProfiles.toString().padEnd(45)}║`);
-    console.log(`║ Queries Processed: ${output.stats.queriesProcessed.toString().padEnd(41)}║`);
-    console.log(`║ Errors: ${output.stats.errors.length.toString().padEnd(52)}║`);
-    console.log(`║ Duration: ${(output.stats.durationMs ? Math.round(output.stats.durationMs / 1000) : 0).toString()}s`.padEnd(63) + '║');
+    console.log(`║ Total Videos: ${outputStats.totalVideos.toString().padEnd(47)}║`);
+    console.log(`║ Total Profiles: ${outputStats.totalProfiles.toString().padEnd(45)}║`);
+    console.log(`║ Queries Processed: ${outputStats.queriesProcessed.toString().padEnd(41)}║`);
+    console.log(`║ Errors: ${outputStats.errors.length.toString().padEnd(52)}║`);
+    console.log(`║ Duration: ${(outputStats.durationMs ? Math.round(outputStats.durationMs / 1000) : 0).toString()}s`.padEnd(63) + '║');
     console.log('╚══════════════════════════════════════════════════════════════╝\n');
 
-    saveResults(output, outputPath);
     console.log(`Full results saved to: ${outputPath}`);
 
-    const apiKey = config.openRouterApiKey || process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.QWEN_API_KEY || config.openRouterApiKey || process.env.OPENROUTER_API_KEY;
     const aiExtractor = apiKey
-      ? new AiExtractor(apiKey, config.openRouterModel)
+      ? new AiExtractor(apiKey, { model: config.openRouterModel })
       : undefined;
 
     if (aiExtractor) {
-      console.log('AI location extraction: enabled');
+      console.log('AI location extraction: enabled (Qwen)');
     } else {
-      console.log('AI location extraction: disabled (set OPENROUTER_API_KEY to enable)');
+      console.log('AI location extraction: disabled (set QWEN_API_KEY to enable)');
     }
 
-    const locations = await processResults(output.results, {
+    const locations = await processResults(outputResults, {
       aiExtractor,
       categoryKeywords: config.categoryKeywords,
       minEngagement: config.minEngagement,
@@ -401,13 +432,13 @@ async function runScraping(config: TikTokScraperInput): Promise<void> {
       });
     }
 
-    if (output.stats.errors.length > 0) {
+    if (outputStats.errors.length > 0) {
       console.log('\nErrors encountered:');
-      output.stats.errors.slice(0, 5).forEach((err, i) => {
+      outputStats.errors.slice(0, 5).forEach((err: string, i: number) => {
         console.log(`   ${i + 1}. ${err}`);
       });
-      if (output.stats.errors.length > 5) {
-        console.log(`   ... and ${output.stats.errors.length - 5} more`);
+      if (outputStats.errors.length > 5) {
+        console.log(`   ... and ${outputStats.errors.length - 5} more`);
       }
     }
 
@@ -419,8 +450,116 @@ async function runScraping(config: TikTokScraperInput): Promise<void> {
   }
 }
 
+async function syncToSupabase(): Promise<void> {
+  clearScreen();
+  printHeader();
+  console.log('Sync to Supabase\n');
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.log('Supabase not configured. Set SUPABASE_URL and SUPABASE_KEY in .env');
+    await confirm({ message: '\nPress enter to continue...', default: true });
+    return;
+  }
+
+  const config: StorageConfig = {
+    sqlitePath: process.env.SQLITE_PATH || 'data/locations.db',
+    supabase: { url: supabaseUrl, key: supabaseKey },
+  };
+
+  const storage = createStorage(config);
+  const locations = await storage.getLocations();
+
+  console.log(`Found ${locations.length} locations in local database`);
+
+  if (locations.length === 0) {
+    console.log('Nothing to sync. Run the scraper first.');
+    await confirm({ message: '\nPress enter to continue...', default: true });
+    return;
+  }
+
+  const proceed = await confirm({
+    message: `Sync ${locations.length} locations to Supabase?`,
+    default: true,
+  });
+
+  if (proceed) {
+    for (const loc of locations) {
+      try {
+        await storage.upsertLocations(
+          [
+            {
+              name: loc.name,
+              description: loc.description,
+              category: loc.category,
+              source: loc.source,
+              sourceUrl: loc.sourceUrl,
+              sourceVideoCount: loc.sourceVideoCount,
+              hashtags: loc.hashtags,
+              mentions: loc.mentions,
+              author: loc.author,
+              authorFollowers: loc.authorFollowers,
+              socialProof: loc.socialProof,
+              locationTag: loc.locationTag,
+              locationUrl: loc.locationUrl,
+              music: loc.music,
+              extractionMethod: loc.extractionMethod,
+            },
+          ],
+          {
+            mode: 'tags' as PipelineMode,
+            queries: [],
+            city: loc.city,
+            videosScraped: 0,
+            locationsFound: 1,
+            errors: [],
+          },
+          loc.city,
+        );
+      } catch (error) {
+        console.warn(`  Failed: "${loc.name}" - ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    console.log(`\nSynced ${locations.length} locations to Supabase`);
+  }
+
+  await confirm({ message: '\nPress enter to continue...', default: true });
+}
+
+async function exportLocationsCsv(): Promise<void> {
+  clearScreen();
+  printHeader();
+  console.log('Export to CSV\n');
+
+  const config: StorageConfig = {
+    sqlitePath: process.env.SQLITE_PATH || 'data/locations.db',
+  };
+
+  const storage = createStorage(config);
+  const locations = await storage.getLocations();
+
+  if (locations.length === 0) {
+    console.log('No locations in database. Run the scraper first.');
+    await confirm({ message: '\nPress enter to continue...', default: true });
+    return;
+  }
+
+  const defaultPath = path.join(process.cwd(), 'output', 'locations.csv');
+  const csvPath = await input({
+    message: 'Output file path:',
+    default: defaultPath,
+  });
+
+  exportToCsv(locations, csvPath);
+  console.log(`\nExported ${locations.length} locations to ${csvPath}`);
+
+  await confirm({ message: '\nPress enter to continue...', default: true });
+}
+
 export async function main() {
-  let config: TikTokScraperInput = { ...DEFAULT_INPUT };
+  let config: TikTokScraperInput & { mode?: PipelineMode } = { ...DEFAULT_INPUT };
   
   const savedConfig = await loadConfiguration();
   if (savedConfig) {
@@ -438,10 +577,13 @@ export async function main() {
       message: 'What would you like to do?',
       choices: [
         { name: '▶️  Run Scraper', value: 'run', description: 'Start scraping with current configuration' },
+        { name: '🔀 Change Mode', value: 'mode', description: `Switch discovery mode (current: ${config.mode || 'google'})` },
         { name: '📝 Configure Queries', value: 'queries', description: 'Add or edit search queries' },
         { name: '⚙️  Advanced Settings', value: 'advanced', description: 'Configure all scraper options' },
         { name: '💾 Save Configuration', value: 'save', description: 'Save current settings to a file' },
         { name: '📂 Load Configuration', value: 'load', description: 'Load settings from a file' },
+        { name: '☁️  Sync to Supabase', value: 'sync', description: 'Push local database to Supabase' },
+        { name: '📊 Export CSV', value: 'csv', description: 'Export locations to CSV file' },
         { name: '🔄 Reset to Defaults', value: 'reset', description: 'Reset all settings to default values' },
         { name: '❌ Exit', value: 'exit', description: 'Exit the application' }
       ]
@@ -450,6 +592,17 @@ export async function main() {
     switch (action) {
       case 'run':
         await runScraping(config);
+        break;
+
+      case 'mode':
+        config.mode = await select({
+          message: 'Select discovery mode:',
+          choices: [
+            { name: 'Google SERP', value: 'google' as PipelineMode, description: 'Search Google for TikTok URLs. Most reliable, but may hit captchas.' },
+            { name: 'Tags Only', value: 'tags' as PipelineMode, description: 'Generate hashtags and scrape tag pages directly. No Google, no captchas.' },
+            { name: 'Hybrid', value: 'hybrid' as PipelineMode, description: 'Google SERP + AI tag generation combined. Maximum coverage.' },
+          ]
+        });
         break;
 
       case 'queries':
@@ -474,6 +627,14 @@ export async function main() {
         }
         break;
       }
+
+      case 'sync':
+        await syncToSupabase();
+        break;
+
+      case 'csv':
+        await exportLocationsCsv();
+        break;
 
       case 'reset':
         const confirmReset = await confirm({

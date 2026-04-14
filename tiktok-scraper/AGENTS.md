@@ -26,7 +26,17 @@ Scrapes TikTok videos to discover and extract named locations with social proof 
 | `src/types.ts` | All TypeScript interfaces, defaults, category keywords |
 | `src/index.ts` | Library entry: `runScraper()`, `runPipeline()`, `saveResults()`, `createStorage()`, `exportToCsv()`, re-exports |
 | `src/cli.ts` | CLI entry: `--input` JSON config, `--mode google|tags|hybrid`, `--sync`, `--export-csv` |
-| `src/tui.ts` | Interactive TUI: menu-driven config, mode selection, sync, CSV export, execution |
+| `src/tui.ts` | TUI entry point (exports `main` from `tui/index.js`) |
+
+### TUI Module (`src/tui/`)
+
+| File | Purpose |
+|------|---------|
+| `src/tui/index.ts` | Module exports: `main`, display utilities, prompts, executors |
+| `src/tui/menu.ts` | Main menu loop, action routing |
+| `src/tui/prompts.ts` | Inquirer prompts: queries, mode, advanced settings, save/load |
+| `src/tui/executor.ts` | `runScraping()`, `syncToSupabase()`, `exportLocationsCsv()` |
+| `src/tui/display.ts` | Screen utilities: `clearScreen`, `printHeader`, `printScrapingStats` |
 
 ### Scraping (`src/scraping/`)
 

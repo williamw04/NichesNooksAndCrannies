@@ -2,73 +2,85 @@
 
 A data collection system for building a database of 50 NYC locations with 3-tier gem classification (Iconic/Local Favorite/Hidden Gem).
 
-# Directory Structure Explained
-```text
-┏━━ NichesNooksAndCrannies/
-┃   ├── AGENTS.md               # Entry point for AI agents
-┃   ├── ARCHITECTURE.md         # Technical architecture
-┃   ├── README.md               # Human-readable overview
-┃   ├── pyproject.toml          # Python dependencies
-┃   └── .env.example            # API keys template
-┃
-┣━━ docs/                       # All documentation
-┃   ├── product-specs/          # WHAT to build (specs)
-┃   ├── design-docs/            # WHY (decisions, beliefs)
-┃   ├── exec-plans/             # HOW (plans, tech debt)
-┃   └── quality-score.md        # Status tracking
-┃
-┣━━ src/                        # All source code
-┃   ├── shared/                 # Reusable foundation
-┃   └── approaches/             # Three approaches
-┃
-┣━━ data/                       # Data storage
-┃   ├── raw/                    # Unprocessed API responses
-┃   ├── processed/              # Cleaned intermediate data
-┃   └── output/                 # Final CSV
-┃
-┗━━ tests/                      # Test suites
+## Project Components
+
+| Component | Language | Purpose | Status |
+|-----------|----------|---------|--------|
+| `tiktok-scraper/` | TypeScript | TikTok video discovery + AI extraction + Places validation | **Active** |
+| `src/approaches/` | Python | Web scraper, AI agent, hybrid approaches | Planned |
+
+## Directory Structure
+
+```
+├── tiktok-scraper/           # Main scraper (TypeScript/Node)
+│   ├── src/                  # Source code
+│   ├── visualizer/           # Map-based explorer
+│   ├── docs/                 # Architecture decisions, design docs
+│   └── output/               # Scraped location data
+│
+├── src/                      # Python approaches (planned)
+│   ├── approaches/
+│   │   ├── web-scraper/      # Reddit, Atlas Obscura scraping
+│   │   ├── ai-agent/         # CrewAI/LangChain discovery
+│   │   └── hybrid/           # Combined approach
+│   └── shared/               # Types, utils, services
+│
+├── docs/                     # Specifications and planning
+│   ├── product-specs/        # WHAT to build
+│   ├── exec-plans/           # HOW to build
+│   └── quality-score.md      # Status tracking
+│
+├── data/                     # Data storage
+│   ├── raw/                  # Unprocessed data
+│   ├── processed/            # Cleaned intermediate
+│   └── output/               # Final CSV
+│
+└── storage/                  # Apify storage (if used)
 ```
 
 ## Quick Start
 
+### TikTok Scraper (Primary)
+
 ```bash
-# Install dependencies
-pip install -e ".[dev,web-scraper]"
+cd tiktok-scraper
+npm install
+npx playwright install chromium
 
-# Or for AI agent approach
-pip install -e ".[dev,ai-agent]"
+# Create .env with:
+# QWEN_API_KEY=your_dashscope_key
+# GOOGLE_MAPS_API_KEY=your_maps_key
+# SUPABASE_URL/KEY (optional)
 
-# Or for hybrid
-pip install -e ".[dev,hybrid]"
-
-# Copy environment file
-cp .env.example .env
-# Edit .env with your API keys
-
-# Run web scraper approach
-python -m src.approaches.web_scraper.main
-
-# Run AI agent approach
-python -m src.approaches.ai_agent.main
-
-# Run hybrid approach
-python -m src.approaches.hybrid.main
+npm start              # Interactive TUI
+npm run scrape:example # Quick test
+npm run serve          # Visualizer at localhost:8000/visualizer/
 ```
 
-## Approaches
+### Python Approaches (Planned)
 
-| Approach | Best For | Cost/Loc | Time/50 |
-|----------|----------|----------|---------|
-| Web Scraper | Scale, cost efficiency | $0.12-0.25 | 2-5 min |
-| AI Agent | Quality, nuance | $0.30-0.50 | 15-45 min |
-| Hybrid | Balance of both | $0.28-0.50 | 10-15 min |
+```bash
+pip install -e ".[dev,web-scraper]"
+python -m src.approaches.web_scraper.main
+```
 
-## Documentation
+## TikTok Scraper Pipeline
 
-- [AGENTS.md](AGENTS.md) - Agent navigation guide
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
-- [docs/product-specs/](docs/product-specs/) - Detailed specifications
-- [docs/quality-score.md](docs/quality-score.md) - Quality metrics
+```
+Google SERP → TikTok videos → AI extraction (Qwen) → Places validation → Storage
+```
+
+- **Discovery**: Google search finds TikTok videos about NYC places
+- **Extraction**: Qwen extracts business names from video descriptions/subtitles
+- **Validation**: Places API returns coordinates, addresses, ratings
+- **Storage**: SQLite (local) + Supabase (remote sync)
+
+### Results (2026-04-14)
+
+- 18 queries, 90 videos scraped
+- 93 locations extracted
+- Average engagement: 25,073 (likes+comments+shares+saves)
+- All locations have coordinates and addresses from Places API
 
 ## Output Schema
 
@@ -78,15 +90,21 @@ price_level,google_maps_url,rating,image_url,tags,ai_vibe_summary,
 gem_level,neighborhood
 ```
 
-## Development
+## History
 
-```bash
-# Run tests
-pytest
+### 2026-04-14
+- TikTok scraper v2.0: Qwen/DashScope AI, Places API validation
+- Large scrape: 93 validated locations stored
+- Visualizer updated with ratings/addresses
+- Supabase sync fixed (FK constraint)
 
-# Run linter
-ruff check .
+### 2026-03-26
+- TikTok scraper v1.0: OpenRouter AI, SQLite storage
+- Initial Python project structure
 
-# Run type checker
-mypy src/
-```
+## Documentation
+
+- [tiktok-scraper/README.md](tiktok-scraper/README.md) — Scraper docs
+- [tiktok-scraper/AGENTS.md](tiktok-scraper/AGENTS.md) — Development guide
+- [AGENTS.md](AGENTS.md) — Parent repo navigation
+- [docs/product-specs/](docs/product-specs/) — Specifications

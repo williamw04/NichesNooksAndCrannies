@@ -53,7 +53,25 @@ npm run start
 npm run tui
 ```
 
-Menu-driven interface for configuring queries, settings, then running the scraper. Saves configs to `configs/` for reuse.
+Menu-driven interface with full configuration and execution:
+
+| Menu Option | Description |
+|-------------|-------------|
+| **▶️ Run Scraper** | Execute scraping with current config |
+| **🔀 Change Mode** | Switch: `google` (SERP), `tags` (AI hashtags), `hybrid` (both) |
+| **📝 Configure Queries** | Add/edit search queries |
+| **⚙️ Advanced Settings** | city, maxItems, resultsPerPage, minEngagement, AI model |
+| **💾 Save Configuration** | Save to `configs/` for reuse |
+| **📂 Load Configuration** | Load saved config |
+| **☁️ Sync to Supabase** | Push local SQLite → Supabase |
+| **📊 Export CSV** | Export locations to CSV file |
+| **🔄 Reset to Defaults** | Clear all settings |
+
+TUI features:
+- Auto-saves last used configuration
+- Shows scraping stats after execution (videos scraped, locations found, avg engagement)
+- Displays top 5 locations by engagement
+- Error summary if issues occurred
 
 ### Library / Programmatic
 

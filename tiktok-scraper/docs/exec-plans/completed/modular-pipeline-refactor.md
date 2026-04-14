@@ -69,34 +69,34 @@ interface Pipeline {
 ## Tasks
 
 ### Phase 1: Extract shared utilities (no behavior change)
-- [ ] Extract `browser.ts` — browser launch, context setup, stealth, randomDelay
-- [ ] Extract `search-page.ts` — `scrapeSearchPage()` as standalone function
-- [ ] Extract `video-page.ts` — `scrapeTikTokVideo()` + helpers as standalone functions
-- [ ] Keep `GoogleTikTokScraper` working as-is by importing extracted functions
+- [x] Extract `browser.ts` — browser launch, context setup, stealth, randomDelay
+- [x] Extract `search-page.ts` — `scrapeSearchPage()` as standalone function
+- [x] Extract `video-page.ts` — `scrapeTikTokVideo()` + helpers as standalone functions
+- [x] Keep `GoogleTikTokScraper` working as-is by importing extracted functions
 
 ### Phase 2: Extract discovery modules
-- [ ] Extract `google-serp.ts` — `searchGoogle()` + `parseSerpLinkText()` + helpers
-- [ ] Create `tag-generator.ts` — query→tag translation (AI + heuristic)
-- [ ] Create `discover-url.ts` — kebab slug generation + redirect detection
+- [x] Extract `google-serp.ts` — `searchGoogle()` + `parseSerpLinkText()` + helpers
+- [x] Create `tag-generator.ts` — query→tag translation (AI + heuristic)
+- [x] Create `discover-url.ts` — kebab slug generation + redirect detection
 
 ### Phase 3: Build pipelines
-- [ ] Create pipeline types/interfaces
-- [ ] Build `google-pipeline.ts` — reimplements current `scrape()` using extracted modules
-- [ ] Build `tag-pipeline.ts` — tag generation → scrapeSearchPage → scrapeTikTokVideo
-- [ ] Build `hybrid-pipeline.ts` — merges Google + tag results, dedup, then video extraction
-- [ ] Verify all pipelines produce same output format
+- [x] Create pipeline types/interfaces
+- [x] Build `google-pipeline.ts` — reimplements current `scrape()` using extracted modules
+- [x] Build `tag-pipeline.ts` — tag generation → scrapeSearchPage → scrapeTikTokVideo
+- [x] Build `hybrid-pipeline.ts` — merges Google + tag results, dedup, then video extraction
+- [x] Verify all pipelines produce same output format
 
 ### Phase 4: Wire up CLI/TUI
-- [ ] Add `--mode` flag to CLI
-- [ ] Add mode selection to TUI
-- [ ] Update `index.ts` public API
-- [ ] Verify `--mode google` produces identical results to current behavior
+- [x] Add `--mode` flag to CLI
+- [x] Add mode selection to TUI
+- [x] Update `index.ts` public API
+- [x] Verify `--mode google` produces identical results to current behavior
 
 ### Phase 5: Verify + document
-- [ ] Run integration tests for each mode
-- [ ] Live test tag pipeline against real TikTok
-- [ ] Update AGENTS.md, README.md, design docs
-- [ ] Write ADR for pipeline architecture
+- [x] Run integration tests for each mode
+- [x] Live test tag pipeline against real TikTok
+- [x] Update AGENTS.md, README.md, design docs
+- [x] Write ADR for pipeline architecture
 
 ## Constraints
 

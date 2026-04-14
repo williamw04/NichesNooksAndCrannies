@@ -1,7 +1,7 @@
 # Agent Operating Guide
 
-**Version:** 1.0.0  
-**Last Updated:** 2026-03-10
+**Version:** 2.0.0  
+**Last Updated:** 2026-04-14
 
 ## Purpose
 
@@ -18,79 +18,98 @@ This file is your navigation map. It points to the right context for your curren
 
 **NYC Hidden Gems Discovery System**: Build a database of 50 NYC locations with 3-tier gem classification (Iconic/Local Favorite/Hidden Gem) using multiple data collection approaches.
 
+### Current Status
+
+| Component | Language | Status | Notes |
+|-----------|----------|--------|-------|
+| `tiktok-scraper/` | TypeScript | **Active** | 93 locations scraped, validated, stored |
+| `src/approaches/unified_pipeline.py` | Python | Ready | DI refactor complete |
+| `src/approaches/web-scraper/` | Python | Planned | Yelp, Reddit, Timeout scrapers |
+
 ## Getting Started
 
 ### First-Time Setup
-1. Read `ARCHITECTURE.md` for system structure and approach organization
-2. Review `docs/product-specs/` for detailed specifications
-3. Check `docs/quality-score.md` for current status
+
+1. **TikTok Scraper** (primary): See `tiktok-scraper/README.md`
+2. **Python Pipeline**: `pip install -e ".[dev,hybrid]"`
 
 ### Before Starting Work
-1. Identify which approach you're working on (ai-agent, web-scraper, or hybrid)
-2. Review relevant product specs in `docs/product-specs/`
-3. Check `docs/exec-plans/active/` for ongoing initiatives
-4. Follow the layer structure for your approach
+
+1. Check `tiktok-scraper/AGENTS.md` for scraper development
+2. Review `docs/exec-plans/active/` for ongoing initiatives
+3. Check `docs/quality-score.md` for current data status
 
 ## Where to Find Information
 
-### Product & Design
+### TikTok Scraper (Primary Component)
+
 | Need | Location |
 |------|----------|
-| Master specification | `docs/product-specs/master-spec.md` |
-| AI Agent approach | `docs/product-specs/ai-agent-approach.md` |
-| Web Scraper approach | `docs/product-specs/web-scraper-approach.md` |
-| AI Agent deep dive | `docs/product-specs/ai-agent-deep-dive.md` |
+| Scraper overview | `tiktok-scraper/README.md` |
+| Development guide | `tiktok-scraper/AGENTS.md` |
+| Build & run | `tiktok-scraper/docs/build-and-run.md` |
+| Architecture decisions | `tiktok-scraper/docs/adr/` |
 
-### Architecture & Code
+### Python Approaches
+
 | Need | Location |
 |------|----------|
 | System architecture | `ARCHITECTURE.md` |
-| Quality metrics | `docs/quality-score.md` |
-| Core beliefs | `docs/design-docs/core-beliefs.md` |
-
-### Implementation Planning
-| Need | Location |
-|------|----------|
-| Active plans | `docs/exec-plans/active/` |
-| Completed plans | `docs/exec-plans/completed/` |
-| Tech debt tracker | `docs/exec-plans/tech-debt-tracker.md` |
+| Master specification | `docs/product-specs/master-spec.md` |
+| Web scraper approach | `docs/product-specs/web-scraper-approach.md` |
 
 ## Directory Structure
 
 ```
-src/
-├── approaches/
-│   ├── ai-agent/      # AI agent-based discovery (CrewAI/LangChain)
-│   ├── web-scraper/   # Traditional web scraping (PRAW, BeautifulSoup)
-│   └── hybrid/        # Combined approach
-├── shared/
-│   ├── types/         # Shared type definitions
-│   ├── utils/         # Common utilities
-│   └── services/      # Shared services
-data/
-├── raw/               # Raw scraped/fetched data
-├── processed/         # Cleaned and validated data
-└── output/            # Final CSV/JSON output
+├── tiktok-scraper/           # TypeScript scraper (primary)
+│   ├── src/
+│   │   ├── pipeline/         # Discovery modes: google, tags, hybrid
+│   │   ├── scraping/         # Browser, video pages, search pages
+│   │   ├── validation/       # Places API geocoding
+│   │   ├── storage/          # SQLite, Supabase, CSV export
+│   │   └── tui/              # Interactive menu
+│   ├── docs/                 # ADRs, design docs
+│   └── visualizer/           # Map-based explorer
+│
+├── src/approaches/           # Python approaches
+│   ├── unified_pipeline.py   # Combined scraper with DI
+│   ├── web-scraper/          # Reddit, Yelp, Timeout, etc.
+│   ├── ai-agent/             # CrewAI/LangChain (planned)
+│   └── hybrid/               # Combined approach
+│
+├── docs/                     # Specifications, planning
+│   ├── product-specs/        # WHAT to build
+│   ├── exec-plans/           # HOW to build
+│   └── quality-score.md      # Status tracking
+│
+└── data/                     # Data storage
+    ├── raw/                  # Unprocessed
+    ├── processed/            # Cleaned intermediate
+    └── output/               # Final CSV
 ```
 
-## Approach-Specific Guidelines
+## UnifiedPipeline (Python)
 
-### AI Agent Approach (`src/approaches/ai-agent/`)
-- Framework: CrewAI or LangChain
-- Tools: SerpAPI, Google Places API, Reddit API
-- Focus: Quality, nuance, content generation
-- Output: Enriched locations with descriptions and vibe summaries
+The `src/approaches/unified_pipeline.py` combines all Python scrapers with dependency injection:
 
-### Web Scraper Approach (`src/approaches/web-scraper/`)
-- Tools: PRAW, BeautifulSoup, Scrapy
-- Sources: Reddit, Atlas Obscura, Google Places API
-- Focus: Scale, cost efficiency, speed
-- Output: Raw location data
+```python
+# Production usage
+from src.approaches.unified_pipeline import create_pipeline
+pipeline = create_pipeline(max_locations=50)
+locations = pipeline.run()
 
-### Hybrid Approach (`src/approaches/hybrid/`)
-- Combines web scrapers for bulk collection
-- Uses AI agents for enrichment
-- Best balance of speed, cost, and quality
+# Testing with mocks
+from src.approaches.unified_pipeline import UnifiedPipeline
+pipeline = UnifiedPipeline(reddit=MockReddit(), yelp=MockYelp())
+```
+
+**Data Sources:**
+- Reddit (JSON API)
+- Yelp (API)
+- Timeout NYC (listicle scraping)
+- Eater NY (map articles)
+- NYC Parks (official site)
+- Google Maps (enrichment)
 
 ## Key Constraints
 
@@ -118,11 +137,12 @@ gem_level,neighborhood
 ## Working in This Repository
 
 ### Development Workflow
-1. **Understand the Task**: Read related product specs
-2. **Choose Approach**: ai-agent, web-scraper, or hybrid
+
+1. **Understand the Task**: Check relevant AGENTS.md
+2. **Choose Component**: TikTok scraper or Python pipeline
 3. **Implement**: Follow architectural constraints
 4. **Validate**: Test against quality requirements
-5. **Document**: Update relevant docs
+5. **Document**: Update docs in same commit
 
 ### Quality Gates
 - All locations have verified coordinates
@@ -134,11 +154,12 @@ gem_level,neighborhood
 
 | Need | Location |
 |------|----------|
+| TikTok scraper | `tiktok-scraper/AGENTS.md` |
+| Python pipeline | `src/approaches/unified_pipeline.py` |
 | What to build | `docs/product-specs/` |
-| How approaches are organized | `ARCHITECTURE.md` |
-| Current quality status | `docs/quality-score.md` |
-| Work in progress | `docs/exec-plans/active/` |
+| System architecture | `ARCHITECTURE.md` |
+| Current status | `docs/quality-score.md` |
 
 ---
 
-**Remember**: This file is your starting point. Navigate to specific documentation as needed for your task.
+**Remember**: Start with `tiktok-scraper/AGENTS.md` for scraper work, or this file for Python pipeline work.

@@ -1,20 +1,52 @@
+# Environment
 .env
+.env.local
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
 venv/
-dist/
-build/
-*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
-*.csv
-!schema.csv
+*.egg-info/
+
+# Node/TypeScript
+node_modules/
+dist/
+
+# Data outputs
 data/raw/*
 data/processed/*
 data/output/*
-!.gitkeep
+!data/.gitkeep
+
+# Storage (Apify)
+storage/
+
+# Logs
+logs/
+*.log
+
+# TikTok scraper
+tiktok-scraper/output/
+tiktok-scraper/data/
+tiktok-scraper/node_modules/
+tiktok-scraper/dist/
+tiktok-scraper/.env
+tiktok-scraper/test-input*.json
+tiktok-scraper/test-google.json
+tiktok-scraper/large-scrape-input.json
+
+# OS
+.DS_Store
+
+# Temporary
+*.csv
+!schema.csv
+PR_DRAFT.md
+test_openrouter.py
